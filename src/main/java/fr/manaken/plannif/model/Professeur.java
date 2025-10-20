@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,6 +20,8 @@ public class Professeur {
     private String nom;
     private String prenom;
     private String email;
+    private BigDecimal nb_heures;
+
 
     @OneToMany(mappedBy = "professeur")
     private Set<Seance> seances = new HashSet<>();
