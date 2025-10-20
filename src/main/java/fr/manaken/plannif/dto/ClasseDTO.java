@@ -1,4 +1,3 @@
 package fr.manaken.plannif.dto;
 
-public class ClasseDTO {
-}
+public record ClasseDTO(Long id, String nom) {}

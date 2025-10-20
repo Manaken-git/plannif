@@ -1,21 +1,25 @@
 package fr.manaken.plannif.service;
 
+import fr.manaken.plannif.dto.ProfesseurDTO;
 import fr.manaken.plannif.fetcher.DataFetcher;
-import fr.manaken.plannif.model.Professeur;
+import fr.manaken.plannif.mapper.ProfesseurMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ProfesseurService {
 
     private final DataFetcher dataFetcher;
+    private final ProfesseurMapper mapper;
 
-    public ProfesseurService(DataFetcher dataFetcher) {
+    public ProfesseurService(DataFetcher dataFetcher, ProfesseurMapper mapper) {
         this.dataFetcher = dataFetcher;
+        this.mapper = mapper;
     }
 
-    public List<Professeur> getProfesseurs() {
-        return dataFetcher.getProfesseurs();
+    public List<ProfesseurDTO> getProfesseurs() {
+        return dataFetcher.getProfesseurs().stream().map(mapper::toDto).collect(Collectors.toList());
     }
 }

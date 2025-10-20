@@ -1,4 +1,3 @@
 package fr.manaken.plannif.dto;
 
-public class ProfesseurDTO {
-}
+public record ProfesseurDTO(Long id, String nom, String prenom, String email) {}

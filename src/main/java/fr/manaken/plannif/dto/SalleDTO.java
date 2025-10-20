@@ -1,4 +1,3 @@
 package fr.manaken.plannif.dto;
 
-public class SalleDTO {
-}
+public record SalleDTO(Long id, String code, Integer capacite) {}
