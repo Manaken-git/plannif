@@ -1,14 +1,23 @@
 package fr.manaken.plannif.controller;
 
+import fr.manaken.plannif.model.Professeur;
+import fr.manaken.plannif.service.ProfesseurService;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 public class PrimaryController {
 
-    @GetMapping("/test/{id}")
-    public void test(@PathVariable Integer id) {
+    private final ProfesseurService professeurService;
 
+    public PrimaryController(ProfesseurService professeurService) {
+        this.professeurService = professeurService;
+    }
+
+    @GetMapping("/test")
+    public List<Professeur> test() {
+        return professeurService.getProfesseurs();
     }
 }
