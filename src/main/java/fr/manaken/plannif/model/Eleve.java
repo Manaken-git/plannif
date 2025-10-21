@@ -4,23 +4,19 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Getter
 @Setter
 @Entity
-public class Classe {
+public class Eleve {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String nom;
+    private String prenom;
 
-    @OneToMany(mappedBy = "classe")
-    private Set<Seance> seances = new HashSet<>();
-
-    @OneToMany(mappedBy = "classe")
-    private Set<Eleve> eleves = new HashSet<>();
+    @ManyToOne
+    @JoinColumn(name = "classe_id")
+    private Classe classe;
 }
