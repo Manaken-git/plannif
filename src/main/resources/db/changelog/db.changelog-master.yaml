@@ -1,16 +1,141 @@
 databaseChangeLog:
   - changeSet:
-    id: "1"
-    author: "my_name"
-    changes:
-      - createTable:
-        tableName: "test_table"
-        columns:
-          - column:
-            name: "test_id"
-            type: "int"
-            constraints:
-              primaryKey: true
-          - column:
-            name: "test_column"
-            type: "INT"
+      id: 1
+      author: manaken
+      changes:
+        - createTable:
+            tableName: professeur
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: nom
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: prenom
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(150)
+                  constraints:
+                    unique: true
+
+  - changeSet:
+      id: 2
+      author: manaken
+      changes:
+        - createTable:
+            tableName: classe
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: nom
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 3
+      author: manaken
+      changes:
+        - createTable:
+            tableName: matiere
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: nom
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+  - changeSet:
+      id: 4
+      author: manaken
+      changes:
+        - createTable:
+            tableName: salle
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: capacite
+                  type: INT
+
+  - changeSet:
+      id: 5
+      author: manaken
+      changes:
+        - createTable:
+            tableName: seance
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: debut
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fin
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: professeur_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_seance_professeur
+                    referencedTableName: professeur
+                    referencedColumnNames: id
+              - column:
+                  name: classe_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_seance_classe
+                    referencedTableName: classe
+                    referencedColumnNames: id
+              - column:
+                  name: matiere_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_seance_matiere
+                    referencedTableName: matiere
+                    referencedColumnNames: id
+              - column:
+                  name: salle_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_seance_salle
+                    referencedTableName: salle
+                    referencedColumnNames: id

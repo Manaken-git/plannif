@@ -1,17 +1,3 @@
--- ============================================================
---  Base de données : planning_ecole
---  Compatible MariaDB 10.x / 11.x
--- ============================================================
-
-CREATE DATABASE IF NOT EXISTS planning_ecole
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_general_ci;
-
-USE planning_ecole;
-
--- ============================================================
--- Table : professeur
--- ============================================================
 CREATE TABLE professeur (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL,
@@ -19,25 +5,16 @@ CREATE TABLE professeur (
     email VARCHAR(150) UNIQUE
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Table : classe
--- ============================================================
 CREATE TABLE classe (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Table : matiere
--- ============================================================
 CREATE TABLE matiere (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     nom VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Table : salle
--- ============================================================
 CREATE TABLE salle (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL,
@@ -45,9 +22,6 @@ CREATE TABLE salle (
     UNIQUE KEY uq_salle_code (code)
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Table : seance
--- ============================================================
 CREATE TABLE seance (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     debut DATETIME NOT NULL,
@@ -71,9 +45,6 @@ CREATE TABLE seance (
         REFERENCES salle(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB;
 
--- ============================================================
--- Index utiles
--- ============================================================
 CREATE INDEX idx_seance_professeur ON seance (professeur_id);
 CREATE INDEX idx_seance_classe ON seance (classe_id);
 CREATE INDEX idx_seance_matiere ON seance (matiere_id);

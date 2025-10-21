@@ -9,7 +9,7 @@ spring:
     driver-class-name: org.mariadb.jdbc.Driver
     jpa:
       hibernate:
-        ddl-auto: update
+        ddl-auto: none
       properties:
         hibernate:
           dialect: org.hibernate.dialect.MariaDBDialect
@@ -19,6 +19,8 @@ spring:
       level:
         org.hibernate.SQL: DEBUG
         org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
 server:
   port: 8080
