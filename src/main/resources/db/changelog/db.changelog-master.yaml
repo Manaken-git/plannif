@@ -169,3 +169,15 @@ databaseChangeLog:
                     foreignKeyName: fk_eleve_classe
                     referencedTableName: classe
                     referencedColumnNames: id
+  - changeSet:
+      id: 7
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: professeur
+            columns:
+              - column:
+                  name: "nb_heures"
+                  type: BIGINT
+                  constraints:
+                    defaultValue: 0

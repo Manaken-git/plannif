@@ -35,4 +35,8 @@ public class DataFetcher {
     public List<Eleve> getElevesByClasse(Long idClasse) {
         return eleveRepository.findByClasseId(idClasse);
     }
+
+    public Professeur getProfesseur(Integer id) {
+        return professeurRepository.getReferenceById(id);
+    }
 }
