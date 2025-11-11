@@ -321,4 +321,52 @@ databaseChangeLog:
               - column:
                   name: volume_horaire_annuel
                   type: BIGINT
+  - changeSet:
+      id: 16
+      author: manaken
+      changes:
+        - createTable:
+            tableName: t_creneau
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: debut
+                  type: DATETIME
+                  constraints:
+                    nullable: false
+              - column:
+                  name: fin
+                  type: DATETIME
+                  constraints:
+                    nullable: false
 
+  - changeSet:
+      id: 17
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: seance
+            columns:
+              - column:
+                  name: creneau_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_creneau_seance
+                    referencedTableName: t_creneau
+                    referencedColumnNames: id
+  - changeSet:
+      id: 18
+      author: manaken
+      changes:
+        - dropColumn:
+            tableName: seance
+            columns:
+              - column:
+                  name: debut
+              - column:
+                  name: fin

@@ -9,7 +9,5 @@ public record SeanceDTO(
         String professeurNomComplet,
         String classeNom,
         String matiereNom,
-        String salleCode,
-        String jourSemaine,
-        String semainePairImpair
+        String salleCode
 ) {}

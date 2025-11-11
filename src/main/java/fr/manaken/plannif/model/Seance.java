@@ -1,21 +1,21 @@
 package fr.manaken.plannif.model;
 
+import ai.timefold.solver.core.api.domain.lookup.PlanningId;
+import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.LocalDateTime;
+import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 
 @Getter
 @Setter
 @Entity
+@PlanningEntity
 public class Seance {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @PlanningId
     private Long id;
-
-    private LocalDateTime debut;
-    private LocalDateTime fin;
 
     @ManyToOne
     @JoinColumn(name = "professeur_id")
@@ -33,10 +33,13 @@ public class Seance {
     @JoinColumn(name = "salle_id")
     private Salle salle;
 
-    @Enumerated(EnumType.STRING)
-    private TypeSeance type; // Nouveau champ
+    @OneToOne
+    @JoinColumn(name = "creneau_id")
+    @PlanningVariable(valueRangeProviderRefs = "creneauRange")
+    private Creneau creneau;
 
-    private String jourSemaine;
+    @Enumerated(EnumType.STRING)
+    private TypeSeance type;
 
     public enum TypeSeance {
         COURS, TP, EXAMEN

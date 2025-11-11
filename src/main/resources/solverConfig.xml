@@ -1,0 +1,11 @@
+<solver xmlns="https://timefold.ai/xsd/solver" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://timefold.ai/xsd/solver https://timefold.ai/xsd/solver/solver.xsd">
+    <solutionClass>fr.manaken.plannif.business.TimetableSolution</solutionClass>
+    <entityClass>fr.manaken.plannif.business.Seance</entityClass>
+    <scoreDirectorFactory>
+        <constraintProviderClass>fr.manaken.plannif.solver.PlanningConstraints</constraintProviderClass>
+    </scoreDirectorFactory>
+    <termination>
+        <secondsSpentLimit>30</secondsSpentLimit>
+    </termination>
+</solver>
