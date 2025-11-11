@@ -17,10 +17,12 @@ spring:
           show_sql: true
     logging:
       level:
-        org.hibernate.SQL: DEBUG
-        org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+        org.hibernate.SQL: ERROR
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.yaml
 server:
   port: 8080
+
+logging:
+  liquibase.ui: TRACE

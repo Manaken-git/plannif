@@ -181,3 +181,144 @@ databaseChangeLog:
                   type: BIGINT
                   constraints:
                     defaultValue: 0
+  - changeSet:
+      id: 8
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: seance
+            columns:
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+  - changeSet:
+      id: 9
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: salle
+            columns:
+              - column:
+                  name: type
+                  type: VARCHAR(50)
+  - changeSet:
+      id: 10
+      author: manaken
+      changes:
+        - createTable:
+            tableName: tj_distance_salle
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: fk_salle1_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_salle_1
+                    referencedTableName: salle
+                    referencedColumnNames: id
+              - column:
+                  name: fk_salle2_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_salle_2
+                    referencedTableName: salle
+                    referencedColumnNames: id
+              - column:
+                  name: distance
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 11
+      author: manaken
+      changes:
+        - createTable:
+            tableName: t_equipement
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: libelle
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 12
+      author: manaken
+      changes:
+        - createTable:
+            tableName: tj_equipements_salle
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: fk_salle_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_salle
+                    referencedTableName: salle
+                    referencedColumnNames: id
+              - column:
+                  name: fk_equipement_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_equ_salle
+                    referencedTableName: t_equipement
+                    referencedColumnNames: id
+  - changeSet:
+      id: 13
+      author: manaken
+      changes:
+        - createTable:
+            tableName: t_plage_horaire
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT AUTO_INCREMENT
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: libelle
+                  type: VARCHAR(200)
+                  constraints:
+                    nullable: false
+  - changeSet:
+      id: 14
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: professeur
+            columns:
+              - column:
+                  name: plage_horaire_preferee_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_plage_pref
+                    referencedTableName: t_plage_horaire
+                    referencedColumnNames: id
+  - changeSet:
+      id: 15
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: matiere
+            columns:
+              - column:
+                  name: volume_horaire_annuel
+                  type: BIGINT
+

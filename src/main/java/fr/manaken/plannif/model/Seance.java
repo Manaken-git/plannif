@@ -33,4 +33,13 @@ public class Seance {
     @JoinColumn(name = "salle_id")
     private Salle salle;
 
+    @Enumerated(EnumType.STRING)
+    private TypeSeance type; // Nouveau champ
+
+    private String jourSemaine;
+
+    public enum TypeSeance {
+        COURS, TP, EXAMEN
+    }
+
 }

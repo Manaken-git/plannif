@@ -22,6 +22,10 @@ public class Professeur {
     private String email;
     private BigDecimal nb_heures;
 
+    @ManyToOne
+    @JoinColumn(name = "plage_horaire_preferee_id", referencedColumnName = "id")
+    private PlageHoraire plageHorairePreferee; // Nouveau champ
+
 
     @OneToMany(mappedBy = "professeur")
     private Set<Seance> seances = new HashSet<>();

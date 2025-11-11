@@ -19,6 +19,8 @@ public class Salle {
     private String code; // ex: B203
     private Integer capacite;
 
+    private String type; // Nouveau champ
+
     @OneToMany(mappedBy = "salle")
     private Set<Seance> seances = new HashSet<>();
 }

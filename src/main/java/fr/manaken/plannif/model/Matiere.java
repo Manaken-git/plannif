@@ -18,6 +18,8 @@ public class Matiere {
 
     private String nom;
 
+    private Long volumeHoraireAnnuel; // Nouveau champ
+
     @OneToMany(mappedBy = "matiere")
     private Set<Seance> seances = new HashSet<>();
 }
