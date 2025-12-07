@@ -7,5 +7,4 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "spring")
 public interface EquipementSalleMapper {
     EquipementSalleDTO toDto(EquipementSalle entity);
-    EquipementSalle toEntity(EquipementSalleDTO dto);
 }

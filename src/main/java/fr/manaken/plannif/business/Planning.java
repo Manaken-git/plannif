@@ -7,6 +7,7 @@ import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import fr.manaken.plannif.model.Creneau;
+import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,9 +20,9 @@ import java.util.List;
 public class Planning {
     private List<Seance> seances;
     private List<Creneau> creneaux;
+    private List<Salle> salles;
 
     private HardSoftScore score;
-
 
     @PlanningEntityCollectionProperty
     public List<Seance> getSeances() {
@@ -32,6 +33,12 @@ public class Planning {
     @ProblemFactCollectionProperty
     public List<Creneau> getCreneaux() {
         return creneaux;
+    }
+
+    @ValueRangeProvider(id = "salleRange")
+    @ProblemFactCollectionProperty
+    public List<Salle> getSalles() {
+        return salles;
     }
 
     @PlanningScore

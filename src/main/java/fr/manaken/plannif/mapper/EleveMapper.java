@@ -8,5 +8,4 @@ import org.mapstruct.Mapper;
 public interface EleveMapper {
 
     EleveDTO toDto(Eleve eleve);
-    Eleve toEntity(EleveDTO professeurDTO);
 }

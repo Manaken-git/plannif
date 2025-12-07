@@ -12,6 +12,7 @@ public class DataPusher {
         this.professeurRepository = professeurRepository;
     }
 
+    @SuppressWarnings("null")
     public Professeur saveProfesseur(Professeur p) {
         return professeurRepository.save(p);
     }

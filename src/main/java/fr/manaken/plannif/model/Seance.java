@@ -31,6 +31,7 @@ public class Seance {
 
     @ManyToOne
     @JoinColumn(name = "salle_id")
+    @PlanningVariable(valueRangeProviderRefs = "salleRange")
     private Salle salle;
 
     @OneToOne

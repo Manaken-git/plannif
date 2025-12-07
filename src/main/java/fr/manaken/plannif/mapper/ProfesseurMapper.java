@@ -7,12 +7,10 @@ import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = { SeanceMapper.class })
 public interface ProfesseurMapper {
 
     ProfesseurDTO toDto(Professeur professeur);
-    Professeur toEntity(ProfesseurDTO professeurDTO);
-
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     void mergeWDTO(@MappingTarget Professeur pBDD, ProfesseurDTO pDTO);

@@ -7,25 +7,46 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import fr.manaken.plannif.model.Seance;
 
 import static ai.timefold.solver.core.api.score.stream.Joiners.equal;
-import static ai.timefold.solver.core.api.score.stream.Joiners.overlapping;
+import static ai.timefold.solver.core.api.score.stream.Joiners.lessThan;
 
 public class PlanningConstraints implements ConstraintProvider {
 
     @Override
     public Constraint[] defineConstraints(ConstraintFactory factory) {
         return new Constraint[] {
-            noOverlapForProfesseur(factory)
+                roomConflict(factory),
+                teacherConflict(factory),
+                studentGroupConflict(factory)
         };
     }
 
-    private Constraint noOverlapForProfesseur(ConstraintFactory factory) {
+    private Constraint roomConflict(ConstraintFactory factory) {
         return factory.forEach(Seance.class)
-            .join(Seance.class,
-                equal(Seance::getProfesseur)
-            )
-            .penalize("Professeur surbooké", HardSoftScore.ONE_HARD);
+                .join(Seance.class,
+                        equal(Seance::getSalle),
+                        equal(Seance::getCreneau),
+                        lessThan(Seance::getId))
+                .penalize(HardSoftScore.ONE_HARD)
+                .asConstraint("Room conflict");
     }
 
+    private Constraint teacherConflict(ConstraintFactory factory) {
+        return factory.forEach(Seance.class)
+                .join(Seance.class,
+                        equal(Seance::getProfesseur),
+                        equal(Seance::getCreneau),
+                        lessThan(Seance::getId))
+                .penalize(HardSoftScore.ONE_HARD)
+                .asConstraint("Teacher conflict");
+    }
 
-    // Autres contraintes
+    private Constraint studentGroupConflict(ConstraintFactory factory) {
+        return factory.forEach(Seance.class)
+                .join(Seance.class,
+                        equal(Seance::getClasse),
+                        equal(Seance::getCreneau),
+                        lessThan(Seance::getId))
+                .penalize(HardSoftScore.ONE_HARD)
+                .asConstraint("Student group conflict");
+    }
 }
