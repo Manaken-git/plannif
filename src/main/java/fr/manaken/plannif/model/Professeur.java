@@ -21,6 +21,9 @@ public class Professeur {
     private String prenom;
     private String email;
     private BigDecimal nb_heures;
+    private BigDecimal maxHeuresParJour;
+    private BigDecimal maxHeuresParSemaine;
+    private BigDecimal maxHeuresParSeance;
 
     @ManyToOne
     @JoinColumn(name = "plage_horaire_preferee_id", referencedColumnName = "id")

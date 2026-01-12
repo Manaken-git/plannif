@@ -397,3 +397,20 @@ databaseChangeLog:
                   type: INT
                   constraints:
                     nullable: false
+
+  - changeSet:
+      id: 20
+      author: manaken
+      changes:
+        - addColumn:
+            tableName: professeur
+            columns:
+              - column:
+                  name: max_heures_par_jour
+                  type: DECIMAL(5,2)
+              - column:
+                  name: max_heures_par_semaine
+                  type: DECIMAL(5,2)
+              - column:
+                  name: max_heures_par_seance
+                  type: DECIMAL(5,2)

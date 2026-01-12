@@ -28,7 +28,7 @@ Hard constraints *must* be satisfied. If any hard constraint is broken, the sche
 *   **Penalty**: 1 Soft point per session assigned on a day off.
 
 
-avoir une limite d'heure par jour, par semaine, par séance (1 contraintes par statement)
+
 une limite d'heure par professeur, par classe => un professeur ne peut pas faire plus de 5 heures sur 2 jours d'affilés pour la même classe, quel que soit la salle et la matière
 
 10h-12h 13h30-15h30 avoir des créneaux de préférence

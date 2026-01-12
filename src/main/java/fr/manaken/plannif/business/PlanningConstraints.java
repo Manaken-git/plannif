@@ -6,8 +6,11 @@ import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
 import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import fr.manaken.plannif.model.Seance;
 
+import java.math.BigDecimal;
+import java.time.temporal.ChronoUnit;
 import static ai.timefold.solver.core.api.score.stream.Joiners.equal;
 import static ai.timefold.solver.core.api.score.stream.Joiners.lessThan;
+import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.sumBigDecimal;
 
 public class PlanningConstraints implements ConstraintProvider {
 
@@ -17,8 +20,51 @@ public class PlanningConstraints implements ConstraintProvider {
                                 roomConflict(factory),
                                 teacherConflict(factory),
                                 studentGroupConflict(factory),
-                                teacherDayOff(factory)
+                                teacherDayOff(factory),
+                                teacherMaxHoursPerDay(factory),
+                                teacherMaxHoursPerWeek(factory),
+                                teacherMaxHoursPerSession(factory)
                 };
+        }
+
+        private Constraint teacherMaxHoursPerDay(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .groupBy(Seance::getProfesseur,
+                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
+                                                sumBigDecimal(this::getDurationInHours))
+                                .filter((prof, date, totalHours) -> prof.getMaxHeuresParJour() != null
+                                                && totalHours.compareTo(prof.getMaxHeuresParJour()) > 0)
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Max hours per day for teacher");
+        }
+
+        private Constraint teacherMaxHoursPerWeek(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .groupBy(Seance::getProfesseur,
+                                                seance -> seance.getCreneau().getDebut().get(
+                                                                java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR),
+                                                sumBigDecimal(this::getDurationInHours))
+                                .filter((prof, week, totalHours) -> prof.getMaxHeuresParSemaine() != null
+                                                && totalHours.compareTo(prof.getMaxHeuresParSemaine()) > 0)
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Max hours per week for teacher");
+        }
+
+        private Constraint teacherMaxHoursPerSession(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .filter(seance -> {
+                                        BigDecimal duration = getDurationInHours(seance);
+                                        return seance.getProfesseur().getMaxHeuresParSeance() != null
+                                                        && duration.compareTo(seance.getProfesseur()
+                                                                        .getMaxHeuresParSeance()) > 0;
+                                })
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Max hours per session for teacher");
+        }
+
+        private BigDecimal getDurationInHours(Seance seance) {
+                long minutes = ChronoUnit.MINUTES.between(seance.getCreneau().getDebut(), seance.getCreneau().getFin());
+                return BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
         }
 
         private Constraint teacherDayOff(ConstraintFactory factory) {
