@@ -26,7 +26,9 @@ public class Professeur {
     @JoinColumn(name = "plage_horaire_preferee_id", referencedColumnName = "id")
     private PlageHoraire plageHorairePreferee; // Nouveau champ
 
-
     @OneToMany(mappedBy = "professeur")
     private Set<Seance> seances = new HashSet<>();
+
+    @OneToMany(mappedBy = "professeur", fetch = FetchType.EAGER)
+    private java.util.List<ProfesseurDayOff> daysOff = new java.util.ArrayList<>();
 }

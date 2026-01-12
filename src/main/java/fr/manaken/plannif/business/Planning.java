@@ -41,6 +41,13 @@ public class Planning {
         return salles;
     }
 
+    @ProblemFactCollectionProperty
+    public List<fr.manaken.plannif.model.ProfesseurDayOff> getProfesseurDayOffs() {
+        return professeurDayOffs;
+    }
+
+    private List<fr.manaken.plannif.model.ProfesseurDayOff> professeurDayOffs;
+
     @PlanningScore
     public HardSoftScore getScore() {
         return score;

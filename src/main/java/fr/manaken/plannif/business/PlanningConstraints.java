@@ -11,42 +11,55 @@ import static ai.timefold.solver.core.api.score.stream.Joiners.lessThan;
 
 public class PlanningConstraints implements ConstraintProvider {
 
-    @Override
-    public Constraint[] defineConstraints(ConstraintFactory factory) {
-        return new Constraint[] {
-                roomConflict(factory),
-                teacherConflict(factory),
-                studentGroupConflict(factory)
-        };
-    }
+        @Override
+        public Constraint[] defineConstraints(ConstraintFactory factory) {
+                return new Constraint[] {
+                                roomConflict(factory),
+                                teacherConflict(factory),
+                                studentGroupConflict(factory),
+                                teacherDayOff(factory)
+                };
+        }
 
-    private Constraint roomConflict(ConstraintFactory factory) {
-        return factory.forEach(Seance.class)
-                .join(Seance.class,
-                        equal(Seance::getSalle),
-                        equal(Seance::getCreneau),
-                        lessThan(Seance::getId))
-                .penalize(HardSoftScore.ONE_HARD)
-                .asConstraint("Room conflict");
-    }
+        private Constraint teacherDayOff(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .join(fr.manaken.plannif.model.ProfesseurDayOff.class,
+                                                equal(Seance::getProfesseur,
+                                                                fr.manaken.plannif.model.ProfesseurDayOff::getProfesseur),
+                                                equal(seance -> seance.getCreneau().getDebut().getDayOfWeek().getValue()
+                                                                - 1,
+                                                                fr.manaken.plannif.model.ProfesseurDayOff::getDayOfWeek))
+                                .penalize(HardSoftScore.ONE_SOFT)
+                                .asConstraint("Teacher day off");
+        }
 
-    private Constraint teacherConflict(ConstraintFactory factory) {
-        return factory.forEach(Seance.class)
-                .join(Seance.class,
-                        equal(Seance::getProfesseur),
-                        equal(Seance::getCreneau),
-                        lessThan(Seance::getId))
-                .penalize(HardSoftScore.ONE_HARD)
-                .asConstraint("Teacher conflict");
-    }
+        private Constraint roomConflict(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .join(Seance.class,
+                                                equal(Seance::getSalle),
+                                                equal(Seance::getCreneau),
+                                                lessThan(Seance::getId))
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Room conflict");
+        }
 
-    private Constraint studentGroupConflict(ConstraintFactory factory) {
-        return factory.forEach(Seance.class)
-                .join(Seance.class,
-                        equal(Seance::getClasse),
-                        equal(Seance::getCreneau),
-                        lessThan(Seance::getId))
-                .penalize(HardSoftScore.ONE_HARD)
-                .asConstraint("Student group conflict");
-    }
+        private Constraint teacherConflict(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .join(Seance.class,
+                                                equal(Seance::getProfesseur),
+                                                equal(Seance::getCreneau),
+                                                lessThan(Seance::getId))
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Teacher conflict");
+        }
+
+        private Constraint studentGroupConflict(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .join(Seance.class,
+                                                equal(Seance::getClasse),
+                                                equal(Seance::getCreneau),
+                                                lessThan(Seance::getId))
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Student group conflict");
+        }
 }
