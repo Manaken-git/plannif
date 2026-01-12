@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import static ai.timefold.solver.core.api.score.stream.Joiners.equal;
 import static ai.timefold.solver.core.api.score.stream.Joiners.lessThan;
+import static ai.timefold.solver.core.api.score.stream.Joiners.filtering;
 import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.sumBigDecimal;
 
 public class PlanningConstraints implements ConstraintProvider {
@@ -23,8 +24,44 @@ public class PlanningConstraints implements ConstraintProvider {
                                 teacherDayOff(factory),
                                 teacherMaxHoursPerDay(factory),
                                 teacherMaxHoursPerWeek(factory),
-                                teacherMaxHoursPerSession(factory)
+                                teacherMaxHoursPerSession(factory),
+                                teacherClassMaxHoursConsecutive(factory),
+                                studentGroupPresence(factory)
                 };
+        }
+
+        private Constraint studentGroupPresence(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .ifNotExists(fr.manaken.plannif.model.ClassePresence.class,
+                                                equal(Seance::getClasse,
+                                                                fr.manaken.plannif.model.ClassePresence::getClasse),
+                                                filtering((seance, presence) -> !seance.getCreneau().getDebut()
+                                                                .toLocalDate().isBefore(presence.getDateDebut())
+                                                                && !seance.getCreneau().getDebut().toLocalDate()
+                                                                                .isAfter(presence.getDateFin())))
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Student group presence");
+        }
+
+        private Constraint teacherClassMaxHoursConsecutive(ConstraintFactory factory) {
+                var workStream = factory
+                                .forEach(Seance.class)
+                                .groupBy(Seance::getProfesseur, Seance::getClasse,
+                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
+                                                sumBigDecimal(this::getDurationInHours))
+                                .map((prof, classe, date, duration) -> new fr.manaken.plannif.model.TeacherClassWork(
+                                                prof, classe, date, duration));
+
+                return workStream.join(workStream,
+                                equal(fr.manaken.plannif.model.TeacherClassWork::getProfesseur,
+                                                fr.manaken.plannif.model.TeacherClassWork::getProfesseur),
+                                equal(fr.manaken.plannif.model.TeacherClassWork::getClasse,
+                                                fr.manaken.plannif.model.TeacherClassWork::getClasse),
+                                equal(w -> w.getDate().plusDays(1), fr.manaken.plannif.model.TeacherClassWork::getDate))
+                                .filter((w1, w2) -> w1.getHours().add(w2.getHours())
+                                                .compareTo(BigDecimal.valueOf(5)) > 0)
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Teacher class max 5h consecutive 2 days");
         }
 
         private Constraint teacherMaxHoursPerDay(ConstraintFactory factory) {

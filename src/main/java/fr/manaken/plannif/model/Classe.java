@@ -23,4 +23,7 @@ public class Classe {
 
     @OneToMany(mappedBy = "classe")
     private Set<Eleve> eleves = new HashSet<>();
+
+    @OneToMany(mappedBy = "classe")
+    private java.util.List<ClassePresence> presences = new java.util.ArrayList<>();
 }

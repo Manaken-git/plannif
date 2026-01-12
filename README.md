@@ -20,6 +20,19 @@ Hard constraints *must* be satisfied. If any hard constraint is broken, the sche
 *   **Implementation**: `studentGroupConflict` in `PlanningConstraints.java`.
 *   **Penalty**: 1 Hard point per conflict.
 
+### 4. Teacher Max Hours
+*   **Description**: A professor has limits on working hours:
+    *   **Max hours per day**: Defined by `max_heures_par_jour`.
+    *   **Max hours per week**: Defined by `max_heures_par_semaine`.
+    *   **Max duration per session**: Defined by `max_heures_par_seance`.
+*   **Implementation**: `teacherMaxHoursPerDay`, `teacherMaxHoursPerWeek`, `teacherMaxHoursPerSession`.
+*   **Penalty**: 1 Hard point per violation.
+
+### 5. Teacher-Class Consecutive Days Limit
+*   **Description**: A professor cannot teach more than **5 hours** for the **same class** over **2 consecutive days**.
+*   **Implementation**: `teacherClassMaxHoursConsecutive`.
+*   **Penalty**: 1 Hard point per violation.
+
 ## Soft Constraints
 
 ### 1. Teacher Day Off
@@ -29,6 +42,5 @@ Hard constraints *must* be satisfied. If any hard constraint is broken, the sche
 
 
 
-une limite d'heure par professeur, par classe => un professeur ne peut pas faire plus de 5 heures sur 2 jours d'affilés pour la même classe, quel que soit la salle et la matière
-
 10h-12h 13h30-15h30 avoir des créneaux de préférence
+des plannings pour les classes

@@ -135,6 +135,7 @@ class PlanningControllerTest {
         planning.setSeances(seances);
 
         planning.setProfesseurDayOffs(new ArrayList<>());
+        planning.setClassePresences(new ArrayList<>());
 
         return planning;
     }
