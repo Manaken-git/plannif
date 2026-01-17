@@ -343,7 +343,6 @@ databaseChangeLog:
                   type: DATETIME
                   constraints:
                     nullable: false
-
   - changeSet:
       id: 17
       author: manaken
@@ -370,8 +369,6 @@ databaseChangeLog:
                   name: debut
               - column:
                   name: fin
-
-
   - changeSet:
       id: 19
       author: manaken
