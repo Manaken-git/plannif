@@ -1,5 +1,5 @@
 ---
-trigger: model_decision
+trigger: manual
 description: Lance ces tests à chaque commit
 ---
 
