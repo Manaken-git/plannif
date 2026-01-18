@@ -81,6 +81,12 @@
             <artifactId>timefold-solver-core</artifactId>
             <version>1.27.0</version>
         </dependency>
+        <dependency>
+            <groupId>ai.timefold.solver</groupId>
+            <artifactId>timefold-solver-test</artifactId>
+            <version>1.27.0</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Liquibase -->
         <dependency>
             <groupId>org.liquibase</groupId>

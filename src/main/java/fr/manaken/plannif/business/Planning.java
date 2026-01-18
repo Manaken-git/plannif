@@ -9,6 +9,8 @@ import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import fr.manaken.plannif.model.Creneau;
 import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
+import fr.manaken.plannif.model.Professeur;
+import fr.manaken.plannif.model.Classe;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,45 +20,31 @@ import java.util.List;
 @Getter
 @Setter
 public class Planning {
-    private List<Seance> seances;
-    private List<Creneau> creneaux;
-    private List<Salle> salles;
-
-    private HardSoftScore score;
 
     @PlanningEntityCollectionProperty
-    public List<Seance> getSeances() {
-        return seances;
-    }
+    private List<Seance> seances = new java.util.ArrayList<>();
 
     @ValueRangeProvider(id = "creneauRange")
     @ProblemFactCollectionProperty
-    public List<Creneau> getCreneaux() {
-        return creneaux;
-    }
+    private List<Creneau> creneaux = new java.util.ArrayList<>();
 
     @ValueRangeProvider(id = "salleRange")
     @ProblemFactCollectionProperty
-    public List<Salle> getSalles() {
-        return salles;
-    }
+    private List<Salle> salles = new java.util.ArrayList<>();
 
     @ProblemFactCollectionProperty
-    public List<fr.manaken.plannif.model.ProfesseurDayOff> getProfesseurDayOffs() {
-        return professeurDayOffs;
-    }
-
-    private List<fr.manaken.plannif.model.ProfesseurDayOff> professeurDayOffs;
+    private List<Professeur> professeurs = new java.util.ArrayList<>();
 
     @ProblemFactCollectionProperty
-    public List<fr.manaken.plannif.model.ClassePresence> getClassePresences() {
-        return classePresences;
-    }
+    private List<Classe> classes = new java.util.ArrayList<>();
 
-    private List<fr.manaken.plannif.model.ClassePresence> classePresences;
+    @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.ProfesseurDayOff> professeurDayOffs = new java.util.ArrayList<>();
+
+    @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.ClassePresence> classePresences = new java.util.ArrayList<>();
 
     @PlanningScore
-    public HardSoftScore getScore() {
-        return score;
-    }
+    private HardSoftScore score;
+
 }

@@ -3,6 +3,7 @@ package fr.manaken.plannif.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 import java.time.LocalDate;
 
@@ -10,10 +11,12 @@ import java.time.LocalDate;
 @Setter
 @Entity
 @Table(name = "t_classe_presence")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ClassePresence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne

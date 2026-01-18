@@ -5,16 +5,19 @@ import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 
 @Getter
 @Setter
 @Entity
 @PlanningEntity
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Seance {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @PlanningId
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne

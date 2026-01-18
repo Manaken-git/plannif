@@ -30,7 +30,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 };
         }
 
-        private Constraint studentGroupPresence(ConstraintFactory factory) {
+        public Constraint studentGroupPresence(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .ifNotExists(fr.manaken.plannif.model.ClassePresence.class,
                                                 equal(Seance::getClasse,
@@ -43,7 +43,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Student group presence");
         }
 
-        private Constraint teacherClassMaxHoursConsecutive(ConstraintFactory factory) {
+        public Constraint teacherClassMaxHoursConsecutive(ConstraintFactory factory) {
                 var workStream = factory
                                 .forEach(Seance.class)
                                 .groupBy(Seance::getProfesseur, Seance::getClasse,
@@ -64,7 +64,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Teacher class max 5h consecutive 2 days");
         }
 
-        private Constraint teacherMaxHoursPerDay(ConstraintFactory factory) {
+        public Constraint teacherMaxHoursPerDay(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .groupBy(Seance::getProfesseur,
                                                 seance -> seance.getCreneau().getDebut().toLocalDate(),
@@ -75,7 +75,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Max hours per day for teacher");
         }
 
-        private Constraint teacherMaxHoursPerWeek(ConstraintFactory factory) {
+        public Constraint teacherMaxHoursPerWeek(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .groupBy(Seance::getProfesseur,
                                                 seance -> seance.getCreneau().getDebut().get(
@@ -87,7 +87,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Max hours per week for teacher");
         }
 
-        private Constraint teacherMaxHoursPerSession(ConstraintFactory factory) {
+        public Constraint teacherMaxHoursPerSession(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .filter(seance -> {
                                         BigDecimal duration = getDurationInHours(seance);
@@ -104,7 +104,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 return BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
         }
 
-        private Constraint teacherDayOff(ConstraintFactory factory) {
+        public Constraint teacherDayOff(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .join(fr.manaken.plannif.model.ProfesseurDayOff.class,
                                                 equal(Seance::getProfesseur,
@@ -116,7 +116,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Teacher day off");
         }
 
-        private Constraint roomConflict(ConstraintFactory factory) {
+        public Constraint roomConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .join(Seance.class,
                                                 equal(Seance::getSalle),
@@ -126,7 +126,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Room conflict");
         }
 
-        private Constraint teacherConflict(ConstraintFactory factory) {
+        public Constraint teacherConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
@@ -136,7 +136,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Teacher conflict");
         }
 
-        private Constraint studentGroupConflict(ConstraintFactory factory) {
+        public Constraint studentGroupConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .join(Seance.class,
                                                 equal(Seance::getClasse),

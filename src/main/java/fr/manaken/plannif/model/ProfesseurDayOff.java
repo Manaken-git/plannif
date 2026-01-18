@@ -9,15 +9,18 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.EqualsAndHashCode;
 
 @Getter
 @Setter
 @Entity
 @Table(name = "t_professeur_dayoff")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ProfesseurDayOff {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne
