@@ -39,6 +39,9 @@ public class Planning {
     private List<Classe> classes = new java.util.ArrayList<>();
 
     @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.Matiere> matieres = new java.util.ArrayList<>();
+
+    @ProblemFactCollectionProperty
     private List<fr.manaken.plannif.model.ProfesseurDayOff> professeurDayOffs = new java.util.ArrayList<>();
 
     @ProblemFactCollectionProperty

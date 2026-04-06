@@ -5,18 +5,11 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
-import fr.manaken.plannif.model.Classe;
-import fr.manaken.plannif.model.Creneau;
-import fr.manaken.plannif.model.Matiere;
-import fr.manaken.plannif.model.Professeur;
-import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
+
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -65,78 +58,38 @@ class PlanningControllerTest {
     }
 
     private Planning generateProblem() {
-        Planning planning = new Planning();
-
-        // Creneau
-        Creneau c1 = new Creneau();
-        c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        c1.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
-
-        List<Creneau> creneaux = new ArrayList<>();
-        creneaux.add(c1);
-        planning.setCreneaux(creneaux);
-
-        // Salles
-        Salle s1 = new Salle();
-        s1.setId(1L);
-        s1.setCode("A101");
-
-        Salle s2 = new Salle();
-        s2.setId(2L);
-        s2.setCode("A102");
-
-        List<Salle> salles = new ArrayList<>();
-        salles.add(s1);
-        salles.add(s2);
-        planning.setSalles(salles);
-
-        // Profs
-        Professeur p1 = new Professeur();
-        p1.setId(1L);
-        p1.setNom("Prof1");
-
-        Professeur p2 = new Professeur();
-        p2.setId(2L);
-        p2.setNom("Prof2");
-
-        // Classes
-        Classe cl1 = new Classe();
-        cl1.setId(1L);
-        cl1.setNom("Class1");
-
-        Classe cl2 = new Classe();
-        cl2.setId(2L);
-        cl2.setNom("Class2");
-
-        // Matieres
-        Matiere m1 = new Matiere();
-        m1.setId(1L);
-        m1.setNom("Maths");
-
-        // Seances
-        Seance seance1 = new Seance();
-        seance1.setId(1L);
-        seance1.setProfesseur(p1);
-        seance1.setClasse(cl1);
-        seance1.setMatiere(m1);
-        seance1.setCreneau(c1);
-
-        Seance seance2 = new Seance();
-        seance2.setId(2L);
-        seance2.setProfesseur(p2);
-        seance2.setClasse(cl2);
-        seance2.setMatiere(m1);
-        seance2.setCreneau(c1);
-
-        List<Seance> seances = new ArrayList<>();
-        seances.add(seance1);
-        seances.add(seance2);
-        planning.setSeances(seances);
-
-        planning.setProfesseurDayOffs(new ArrayList<>());
-        planning.setClassePresences(new ArrayList<>());
-
-        return planning;
+        com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
+                .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        try (java.io.InputStream inputStream = getClass().getClassLoader()
+                .getResourceAsStream("test_data_scenario.json")) {
+            Planning planning = objectMapper.readValue(inputStream, Planning.class);
+            try (java.io.InputStream is2 = getClass().getClassLoader().getResourceAsStream("test_data_scenario.json")) {
+                com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(is2);
+                com.fasterxml.jackson.databind.JsonNode seancesNode = rootNode.get("seances_exemples");
+                if (seancesNode != null && seancesNode.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode sn : seancesNode) {
+                        Seance s = new Seance();
+                        s.setId(sn.get("id").asLong());
+                        Long profId = sn.get("professeur_id").asLong();
+                        planning.getProfesseurs().stream().filter(p -> p.getId().equals(profId)).findFirst()
+                                .ifPresent(s::setProfesseur);
+                        Long classeId = sn.get("classe_id").asLong();
+                        planning.getClasses().stream().filter(c -> c.getId().equals(classeId)).findFirst()
+                                .ifPresent(s::setClasse);
+                        if (sn.has("matiere_id")) {
+                            Long matiereId = sn.get("matiere_id").asLong();
+                            planning.getMatieres().stream().filter(m -> m.getId().equals(matiereId)).findFirst()
+                                    .ifPresent(s::setMatiere);
+                        }
+                        planning.getSeances().add(s);
+                    }
+                }
+            }
+            return planning;
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Failed to read test_data_scenario.json", e);
+        }
     }
+
 }
