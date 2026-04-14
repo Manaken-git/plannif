@@ -21,31 +21,36 @@
       "id": 1,
       "nom": "Professeur Alpha",
       "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0
+      "maxHeuresParSemaine": 25.0,
+      "matiere_ids": [1, 2]
     },
     {
       "id": 2,
       "nom": "Professeur Beta",
       "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0
+      "maxHeuresParSemaine": 25.0,
+      "matiere_ids": [3, 4]
     },
     {
       "id": 3,
       "nom": "Professeur Gamma",
       "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0
+      "maxHeuresParSemaine": 25.0,
+      "matiere_ids": [5, 6]
     },
     {
       "id": 4,
       "nom": "Professeur Delta",
       "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0
+      "maxHeuresParSemaine": 25.0,
+      "matiere_ids": [1, 2]
     },
     {
       "id": 5,
       "nom": "Professeur Epsilon",
       "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0
+      "maxHeuresParSemaine": 25.0,
+      "matiere_ids": [3, 4]
     }
   ],
   "matieres": [

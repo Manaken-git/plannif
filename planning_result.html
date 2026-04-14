@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Planning - Vue Gantt</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --secondary: #64748b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --text: #1e293b;
+    --border: #e2e8f0;
+  }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 15px; }
+  h1 { margin: 0; color: var(--primary); }
+  .score { font-weight: bold; background: #dcfce7; color: #166534; padding: 8px 16px; border-radius: 20px; }
+  .day-section { background: var(--card); border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); padding: 20px; margin-bottom: 40px; }
+  .day-title { margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid var(--border); text-transform: capitalize; }
+  .timeline-container { position: relative; margin-top: 20px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .timeline-header { display: flex; background: #f1f5f9; border-bottom: 1px solid var(--border); }
+  .timeline-row { display: flex; border-bottom: 1px solid var(--border); min-height: 80px; }
+  .row-label { width: 150px; padding: 10px; font-weight: bold; border-right: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; background: #fafafa; }
+  .time-slot { flex: 1; padding: 10px; text-align: center; border-right: 1px solid var(--border); font-size: 0.85em; color: var(--secondary); }
+  .row-content { flex: 1; position: relative; display: flex; }
+  .grid-line { flex: 1; border-right: 1px solid #f0f0f0; height: 100%; pointer-events: none; }
+  .session-bar { position: absolute; height: 80%; top: 10%; background: var(--primary); color: white; border-radius: 6px; padding: 8px; font-size: 0.75em; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: help; }
+  .session-bar:hover { transform: scale(1.02); z-index: 10; }
+  .session-title { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .session-info { opacity: 0.9; margin: 2px 0; }
+  .session-time { font-style: italic; font-size: 0.9em; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Planning Universitaire</h1>
+  <div class="score">Score: -45hard/0soft</div>
+</header>
+<main>
+<section class="day-section">
+  <h2 class="day-title">lundi 12 février</h2>
+  <div class="timeline-container">
+    <div class="timeline-header">
+      <div class="row-label">Professeur</div>
+      <div class="time-slot">8h</div>
+      <div class="time-slot">9h</div>
+      <div class="time-slot">10h</div>
+      <div class="time-slot">11h</div>
+      <div class="time-slot">12h</div>
+      <div class="time-slot">13h</div>
+      <div class="time-slot">14h</div>
+      <div class="time-slot">15h</div>
+      <div class="time-slot">16h</div>
+      <div class="time-slot">17h</div>
+      <div class="time-slot">18h</div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">M. Richard</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Français - 5ème 1">
+          <div class="session-title">Français</div>
+          <div class="session-info">5ème 1 - S103</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Français - 5ème 2">
+          <div class="session-title">Français</div>
+          <div class="session-info">5ème 2 - S104</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Physique - 2nde 1">
+          <div class="session-title">Physique</div>
+          <div class="session-info">2nde 1 - S201</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">Mme Durand</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Mathématiques - 5ème 1">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">5ème 1 - S102</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Géographie - 5ème 2">
+          <div class="session-title">Géographie</div>
+          <div class="session-info">5ème 2 - S102</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Mathématiques - 2nde 2">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">2nde 2 - S204</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">M. Dubois</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Mathématiques - 4ème 1">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">4ème 1 - S105</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Mathématiques - 4ème 2">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">4ème 2 - S201</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Anglais - 2nde 2">
+          <div class="session-title">Anglais</div>
+          <div class="session-info">2nde 2 - S202</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">Mme Moreau</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Anglais - 4ème 1">
+          <div class="session-title">Anglais</div>
+          <div class="session-info">4ème 1 - S105</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Anglais - 4ème 2">
+          <div class="session-title">Anglais</div>
+          <div class="session-info">4ème 2 - S201</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Français - 2nde 2">
+          <div class="session-title">Français</div>
+          <div class="session-info">2nde 2 - S202</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">M. Laurent</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Histoire - 4ème 1">
+          <div class="session-title">Histoire</div>
+          <div class="session-info">4ème 1 - S103</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Français - 4ème 2">
+          <div class="session-title">Français</div>
+          <div class="session-info">4ème 2 - S103</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">Mme Simon</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Physique - 3ème 1">
+          <div class="session-title">Physique</div>
+          <div class="session-info">3ème 1 - S202</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Physique - 3ème 2">
+          <div class="session-title">Physique</div>
+          <div class="session-info">3ème 2 - S202</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">M. Martin</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Mathématiques - 6ème 1">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">6ème 1 - S101</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Mathématiques - 6ème 2">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">6ème 2 - S102</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Géographie - 3ème 1">
+          <div class="session-title">Géographie</div>
+          <div class="session-info">3ème 1 - S104</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Français - 3ème 2">
+          <div class="session-title">Français</div>
+          <div class="session-info">3ème 2 - S105</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">Mme Bernard</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Français - 6ème 1">
+          <div class="session-title">Français</div>
+          <div class="session-info">6ème 1 - S101</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Français - 6ème 2">
+          <div class="session-title">Français</div>
+          <div class="session-info">6ème 2 - S102</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Mathématiques - 3ème 1">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">3ème 1 - S104</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Anglais - 3ème 2">
+          <div class="session-title">Anglais</div>
+          <div class="session-info">3ème 2 - S105</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">M. Petit</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Histoire - 6ème 1">
+          <div class="session-title">Histoire</div>
+          <div class="session-info">6ème 1 - S101</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+        <div class="session-bar" style="left: 65.9090909090909%; width: 18.181818181818183%;" title="Anglais - 6ème 2">
+          <div class="session-title">Anglais</div>
+          <div class="session-info">6ème 2 - S101</div>
+          <div class="session-time">15:15 - 17:15</div>
+        </div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Mathématiques - 2nde 1">
+          <div class="session-title">Mathématiques</div>
+          <div class="session-info">2nde 1 - S203</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-row">
+      <div class="row-label">Mme Robert</div>
+      <div class="row-content">
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="grid-line"></div>
+        <div class="session-bar" style="left: 0.0%; width: 18.181818181818183%;" title="Physique - 5ème 1">
+          <div class="session-title">Physique</div>
+          <div class="session-info">5ème 1 - S103</div>
+          <div class="session-time">08:00 - 10:00</div>
+        </div>
+        <div class="session-bar" style="left: 20.454545454545457%; width: 18.181818181818183%;" title="Physique - 5ème 2">
+          <div class="session-title">Physique</div>
+          <div class="session-info">5ème 2 - S104</div>
+          <div class="session-time">10:15 - 12:15</div>
+        </div>
+        <div class="session-bar" style="left: 45.45454545454545%; width: 18.181818181818183%;" title="Histoire - 2nde 1">
+          <div class="session-title">Histoire</div>
+          <div class="session-info">2nde 1 - S201</div>
+          <div class="session-time">13:00 - 15:00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+</body>
+</html>

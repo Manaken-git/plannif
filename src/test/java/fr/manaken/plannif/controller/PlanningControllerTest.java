@@ -5,6 +5,7 @@ import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
+import fr.manaken.plannif.exporter.PlanningExporter;
 import fr.manaken.plannif.model.Seance;
 
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,9 @@ import java.time.Duration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PlanningControllerTest {
+
+    static final String FICHIER_TEST = "test_data_scenario.json";
+    static final String FICHIER_BIG_TEST = "test_big_data_scenario.json";
 
     @Test
     void testSolver() {
@@ -28,7 +32,7 @@ class PlanningControllerTest {
         Solver<Planning> solver = solverFactory.buildSolver();
 
         // 2. Generate Data
-        Planning problem = generateProblem();
+        Planning problem = generateProblem(FICHIER_BIG_TEST);
 
         // 3. Solve
         Planning solution = solver.solve(problem);
@@ -36,36 +40,42 @@ class PlanningControllerTest {
         // 4. Verify Result
         assertThat(solution).isNotNull();
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("<h1>Planning Result</h1>");
-        sb.append("<p>Score: ").append(solution.getScore()).append("</p>");
-        sb.append("<table border='1'><tr><th>Seance</th><th>Prof</th><th>Class</th><th>Room</th></tr>");
-
-        for (Seance seance : solution.getSeances()) {
-            sb.append("<tr>");
-            sb.append("<td>").append(seance.getId()).append("</td>");
-            sb.append("<td>").append(seance.getProfesseur().getNom()).append("</td>");
-            sb.append("<td>").append(seance.getClasse().getNom()).append("</td>");
-            sb.append("<td>").append(seance.getSalle() != null ? seance.getSalle().getCode() : "Unassigned")
-                    .append("</td>");
-            sb.append("</tr>");
-        }
-        sb.append("</table>");
-
-        // Print the result to stdout for manual inspection if needed, replacing the
-        // return
-        System.out.println(sb.toString());
+        // 5. Export result to HTML Gantt view
+        PlanningExporter.exportToHtml(solution, "planning_result.html");
+        System.out.println("Gantt result written to: " + new java.io.File("planning_result.html").getAbsolutePath());
     }
 
-    private Planning generateProblem() {
+    private Planning generateProblem(String fichier) {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
                 .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         try (java.io.InputStream inputStream = getClass().getClassLoader()
-                .getResourceAsStream("test_data_scenario.json")) {
+                .getResourceAsStream(fichier)) {
             Planning planning = objectMapper.readValue(inputStream, Planning.class);
-            try (java.io.InputStream is2 = getClass().getClassLoader().getResourceAsStream("test_data_scenario.json")) {
+            try (java.io.InputStream is2 = getClass().getClassLoader().getResourceAsStream(fichier)) {
                 com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(is2);
+                
+                com.fasterxml.jackson.databind.JsonNode profsNode = rootNode.get("professeurs");
+                if (profsNode != null && profsNode.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode pn : profsNode) {
+                        if (pn.has("matiere_ids")) {
+                            Long profId = pn.get("id").asLong();
+                            planning.getProfesseurs().stream()
+                                .filter(p -> p.getId().equals(profId))
+                                .findFirst()
+                                .ifPresent(prof -> {
+                                    for (com.fasterxml.jackson.databind.JsonNode midNode : pn.get("matiere_ids")) {
+                                        Long mid = midNode.asLong();
+                                        planning.getMatieres().stream()
+                                            .filter(m -> m.getId().equals(mid))
+                                            .findFirst()
+                                            .ifPresent(prof.getMatieres()::add);
+                                    }
+                                });
+                        }
+                    }
+                }
+
                 com.fasterxml.jackson.databind.JsonNode seancesNode = rootNode.get("seances_exemples");
                 if (seancesNode != null && seancesNode.isArray()) {
                     for (com.fasterxml.jackson.databind.JsonNode sn : seancesNode) {
@@ -88,7 +98,7 @@ class PlanningControllerTest {
             }
             return planning;
         } catch (java.io.IOException e) {
-            throw new RuntimeException("Failed to read test_data_scenario.json", e);
+            throw new RuntimeException("Failed to read " + fichier, e);
         }
     }
 

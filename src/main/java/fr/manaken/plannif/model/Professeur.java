@@ -37,4 +37,12 @@ public class Professeur {
 
     @OneToMany(mappedBy = "professeur", fetch = FetchType.EAGER)
     private java.util.List<ProfesseurDayOff> daysOff = new java.util.ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "tj_professeur_matiere",
+        joinColumns = @JoinColumn(name = "professeur_id"),
+        inverseJoinColumns = @JoinColumn(name = "matiere_id")
+    )
+    private Set<Matiere> matieres = new HashSet<>();
 }

@@ -26,7 +26,8 @@ public class PlanningConstraints implements ConstraintProvider {
                                 teacherMaxHoursPerWeek(factory),
                                 teacherMaxHoursPerSession(factory),
                                 teacherClassMaxHoursConsecutive(factory),
-                                studentGroupPresence(factory)
+                                studentGroupPresence(factory),
+                                teacherMustBeQualified(factory)
                 };
         }
 
@@ -41,6 +42,14 @@ public class PlanningConstraints implements ConstraintProvider {
                                                                                 .isAfter(presence.getDateFin())))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Student group presence");
+        }
+
+        public Constraint teacherMustBeQualified(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .filter(seance -> seance.getProfesseur() != null
+                                                && !seance.getProfesseur().getMatieres().contains(seance.getMatiere()))
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Teacher must be qualified for the subject");
         }
 
         public Constraint teacherClassMaxHoursConsecutive(ConstraintFactory factory) {
