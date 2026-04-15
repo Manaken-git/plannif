@@ -38,11 +38,5 @@ public class Professeur {
     
     private java.util.List<ProfesseurDayOff> daysOff = new java.util.ArrayList<>();
 
-    
-    @JoinTable(
-        name = "tj_professeur_matiere",
-        joinColumns = ,
-        inverseJoinColumns = 
-    )
     private Set<Matiere> matieres = new HashSet<>();
 }

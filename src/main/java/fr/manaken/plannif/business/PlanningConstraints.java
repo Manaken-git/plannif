@@ -7,8 +7,6 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import fr.manaken.plannif.model.Seance;
 import fr.manaken.plannif.model.MatiereClasseConfig;
-import fr.manaken.plannif.model.ClassePresence;
-import fr.manaken.plannif.model.ProfesseurDayOff;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;

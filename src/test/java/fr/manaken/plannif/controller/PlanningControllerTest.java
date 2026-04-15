@@ -7,13 +7,11 @@ import ai.timefold.solver.core.config.solver.SolverConfig;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
 import fr.manaken.plannif.exporter.PlanningExporter;
-import fr.manaken.plannif.model.Seance;
 import fr.manaken.plannif.model.MatiereClasseConfig;
-
+import fr.manaken.plannif.model.Seance;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
