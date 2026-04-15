@@ -11,9 +11,7 @@ import fr.manaken.plannif.model.Matiere;
 import fr.manaken.plannif.model.Professeur;
 import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -24,25 +22,36 @@ import java.util.List;
 @RequestMapping("/planning")
 public class PlanningController {
 
-    @GetMapping("/test")
-    public String solveTest() {
-        // 1. Configure Solver
+    private Solver<Planning> buildSolver() {
         SolverConfig solverConfig = new SolverConfig()
                 .withSolutionClass(Planning.class)
                 .withEntityClasses(Seance.class)
                 .withConstraintProviderClass(PlanningConstraints.class)
-                .withTerminationSpentLimit(Duration.ofSeconds(4));
+                .withTerminationSpentLimit(Duration.ofSeconds(30));
 
         SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
-        Solver<Planning> solver = solverFactory.buildSolver();
+        return solverFactory.buildSolver();
+    }
 
-        // 2. Generate Data
+    /**
+     * Endpoint principal : reçoit un Planning (JSON) en entrée,
+     * lance le solver Timefold, et retourne le Planning résolu.
+     */
+    @PostMapping("/solve")
+    public Planning solve(@RequestBody Planning problem) {
+        Solver<Planning> solver = buildSolver();
+        return solver.solve(problem);
+    }
+
+    /**
+     * Endpoint de test avec des données en dur.
+     */
+    @GetMapping("/test")
+    public String solveTest() {
+        Solver<Planning> solver = buildSolver();
         Planning problem = generateProblem();
-
-        // 3. Solve
         Planning solution = solver.solve(problem);
 
-        // 4. Return Result
         StringBuilder sb = new StringBuilder();
         sb.append("<h1>Planning Result</h1>");
         sb.append("<p>Score: ").append(solution.getScore()).append("</p>");

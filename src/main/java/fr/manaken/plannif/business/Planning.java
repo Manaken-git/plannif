@@ -32,6 +32,7 @@ public class Planning {
     @ProblemFactCollectionProperty
     private List<Salle> salles = new java.util.ArrayList<>();
 
+    @ValueRangeProvider(id = "professeurRange")
     @ProblemFactCollectionProperty
     private List<Professeur> professeurs = new java.util.ArrayList<>();
 
@@ -46,6 +47,9 @@ public class Planning {
 
     @ProblemFactCollectionProperty
     private List<fr.manaken.plannif.model.ClassePresence> classePresences = new java.util.ArrayList<>();
+
+    @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.MatiereClasseConfig> matiereClasseConfigs = new java.util.ArrayList<>();
 
     @PlanningScore
     private HardSoftScore score;

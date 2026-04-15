@@ -40,10 +40,6 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
-        </dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -54,12 +50,6 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client -->
-        <dependency>
-            <groupId>org.mariadb.jdbc</groupId>
-            <artifactId>mariadb-java-client</artifactId>
-            <version>3.5.6</version>
         </dependency>
         <!-- MapStruct -->
         <dependency>
@@ -86,11 +76,6 @@
             <artifactId>timefold-solver-test</artifactId>
             <version>1.27.0</version>
             <scope>test</scope>
-        </dependency>
-        <!-- Liquibase -->
-        <dependency>
-            <groupId>org.liquibase</groupId>
-            <artifactId>liquibase-core</artifactId>
         </dependency>
 	</dependencies>
 

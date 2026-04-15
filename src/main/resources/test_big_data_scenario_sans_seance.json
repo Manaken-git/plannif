@@ -88,42 +88,5 @@
     { "id": 8, "classe_id": 8, "dateDebut": "2024-02-01", "dateFin": "2024-03-01" },
     { "id": 9, "classe_id": 9, "dateDebut": "2024-02-01", "dateFin": "2024-03-01" },
     { "id": 10, "classe_id": 10, "dateDebut": "2024-02-01", "dateFin": "2024-03-01" }
-  ],
-  "seances_exemples": [
-    { "id": 1, "professeur_id": 1, "classe_id": 1, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 6-1" },
-    { "id": 2, "professeur_id": 2, "classe_id": 1, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 6-1" },
-    { "id": 3, "professeur_id": 3, "classe_id": 1, "matiere_id": 5, "duree_minutes": 120, "commentaire": "Histoire 6-1" },
-    { "id": 4, "professeur_id": 1, "classe_id": 2, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 6-2" },
-    { "id": 5, "professeur_id": 2, "classe_id": 2, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 6-2" },
-    { "id": 6, "professeur_id": 3, "classe_id": 2, "matiere_id": 4, "duree_minutes": 120, "commentaire": "Anglais 6-2" },
-    { "id": 7, "professeur_id": 4, "classe_id": 3, "matiere_id": 2, "duree_minutes": 120, "commentaire": "Physique 5-1" },
-    { "id": 8, "professeur_id": 5, "classe_id": 3, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 5-1" },
-    { "id": 9, "professeur_id": 6, "classe_id": 3, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 5-1" },
-    { "id": 10, "professeur_id": 4, "classe_id": 4, "matiere_id": 2, "duree_minutes": 120, "commentaire": "Physique 5-2" },
-    { "id": 11, "professeur_id": 5, "classe_id": 4, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 5-2" },
-    { "id": 12, "professeur_id": 6, "classe_id": 4, "matiere_id": 6, "duree_minutes": 120, "commentaire": "Géo 5-2" },
-    { "id": 13, "professeur_id": 7, "classe_id": 5, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 4-1" },
-    { "id": 14, "professeur_id": 8, "classe_id": 5, "matiere_id": 4, "duree_minutes": 120, "commentaire": "Anglais 4-1" },
-    { "id": 15, "professeur_id": 9, "classe_id": 5, "matiere_id": 5, "duree_minutes": 120, "commentaire": "Histoire 4-1" },
-    { "id": 16, "professeur_id": 7, "classe_id": 6, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 4-2" },
-    { "id": 17, "professeur_id": 8, "classe_id": 6, "matiere_id": 4, "duree_minutes": 120, "commentaire": "Anglais 4-2" },
-    { "id": 18, "professeur_id": 9, "classe_id": 6, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 4-2" },
-    { "id": 19, "professeur_id": 10, "classe_id": 7, "matiere_id": 2, "duree_minutes": 120, "commentaire": "Physique 3-1" },
-    { "id": 20, "professeur_id": 1, "classe_id": 7, "matiere_id": 6, "duree_minutes": 120, "commentaire": "Géo 3-1" },
-    { "id": 21, "professeur_id": 2, "classe_id": 7, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 3-1" },
-    { "id": 22, "professeur_id": 10, "classe_id": 8, "matiere_id": 2, "duree_minutes": 120, "commentaire": "Physique 3-2" },
-    { "id": 23, "professeur_id": 1, "classe_id": 8, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 3-2" },
-    { "id": 24, "professeur_id": 2, "classe_id": 8, "matiere_id": 4, "duree_minutes": 120, "commentaire": "Anglais 3-2" },
-    { "id": 25, "professeur_id": 3, "classe_id": 9, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 2nde-1" },
-    { "id": 26, "professeur_id": 4, "classe_id": 9, "matiere_id": 5, "duree_minutes": 120, "commentaire": "Histoire 2nde-1" },
-    { "id": 27, "professeur_id": 5, "classe_id": 9, "matiere_id": 2, "duree_minutes": 120, "commentaire": "Physique 2nde-1" },
-    { "id": 28, "professeur_id": 6, "classe_id": 10, "matiere_id": 1, "duree_minutes": 120, "commentaire": "Maths 2nde-2" },
-    { "id": 29, "professeur_id": 7, "classe_id": 10, "matiere_id": 4, "duree_minutes": 120, "commentaire": "Anglais 2nde-2" },
-    { "id": 30, "professeur_id": 8, "classe_id": 10, "matiere_id": 3, "duree_minutes": 120, "commentaire": "Français 2nde-2" }
-  ],
-  "matiereClasseConfigs": [
-    { "id": 1, "classe_id": 1, "matiere_id": 1, "dateDebut": "2024-02-12", "dateFin": "2024-02-13" },
-    { "id": 2, "classe_id": 1, "matiere_id": 3, "dateDebut": "2024-02-14", "dateFin": "2024-02-15" },
-    { "id": 3, "classe_id": 1, "matiere_id": 5, "dateDebut": "2024-02-12", "dateFin": "2024-02-16" }
   ]
 }

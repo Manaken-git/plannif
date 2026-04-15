@@ -3,7 +3,9 @@ package fr.manaken.plannif.model;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 
 import java.time.LocalDate;
 
@@ -11,12 +13,13 @@ import java.time.LocalDate;
 @Setter
 
 
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class ClassePresence {
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class MatiereClasseConfig {
 
     
     
-    @EqualsAndHashCode.Include
     private Long id;
 
     
@@ -24,8 +27,9 @@ public class ClassePresence {
     private Classe classe;
 
     
-    private LocalDate dateDebut;
-
     
+    private Matiere matiere;
+
+    private LocalDate dateDebut;
     private LocalDate dateFin;
 }

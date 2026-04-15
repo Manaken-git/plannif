@@ -1,5 +1,6 @@
 package fr.manaken.plannif.controller;
 
+import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.solver.Solver;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
@@ -7,10 +8,14 @@ import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
 import fr.manaken.plannif.exporter.PlanningExporter;
 import fr.manaken.plannif.model.Seance;
+import fr.manaken.plannif.model.MatiereClasseConfig;
 
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,6 +23,7 @@ class PlanningControllerTest {
 
     static final String FICHIER_TEST = "test_data_scenario.json";
     static final String FICHIER_BIG_TEST = "test_big_data_scenario.json";
+    static final String FICHIER_SANS_SEANCE = "test_big_data_scenario_sans_seance.json";
 
     @Test
     void testSolver() {
@@ -40,9 +46,66 @@ class PlanningControllerTest {
         // 4. Verify Result
         assertThat(solution).isNotNull();
 
-        // 5. Export result to HTML Gantt view
+        // 5. Verify and Export
+        assertThat(solution).isNotNull();
+        System.out.println("Final Score: " + solution.getScore());
+        
+        // Explain score
+        ai.timefold.solver.core.api.solver.SolutionManager<Planning, HardSoftScore> solutionManager = ai.timefold.solver.core.api.solver.SolutionManager.create(solverFactory);
+        System.out.println(solutionManager.explain(solution));
+
         PlanningExporter.exportToHtml(solution, "planning_result.html");
         System.out.println("Gantt result written to: " + new java.io.File("planning_result.html").getAbsolutePath());
+    }
+
+    @Test
+    void testSolverWithGeneration() {
+        // 1. Configure Solver
+        SolverConfig solverConfig = new SolverConfig()
+                .withSolutionClass(Planning.class)
+                .withEntityClasses(Seance.class)
+                .withConstraintProviderClass(PlanningConstraints.class)
+                .withTerminationSpentLimit(Duration.ofSeconds(20));
+
+        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        Solver<Planning> solver = solverFactory.buildSolver();
+
+        // 2. Generate Global Fact Data from JSON (without sessions)
+        Planning problem = generateProblem(FICHIER_SANS_SEANCE);
+
+        // 3. Programmatically generate sessions (4 per class)
+        // Only pick subjects that have at least one qualified teacher
+        java.util.List<fr.manaken.plannif.model.Matiere> validMatieres = problem.getMatieres().stream()
+                .filter(m -> problem.getProfesseurs().stream().anyMatch(p -> p.getMatieres().contains(m)))
+                .collect(java.util.stream.Collectors.toList());
+
+        long seanceId = 1000;
+        java.util.Random random = new java.util.Random(42);
+        for (fr.manaken.plannif.model.Classe classe : problem.getClasses()) {
+            for (int i = 0; i < 4; i++) {
+                Seance s = new Seance();
+                s.setId(seanceId++);
+                s.setClasse(classe);
+                // Pick a random valid subject
+                fr.manaken.plannif.model.Matiere matiere = validMatieres.get(random.nextInt(validMatieres.size()));
+                s.setMatiere(matiere);
+                problem.getSeances().add(s);
+            }
+        }
+
+        // 4. Solve
+        Planning solution = solver.solve(problem);
+
+        // 5. Verify and Export
+        assertThat(solution).isNotNull();
+        System.out.println("Final Score (Generated): " + solution.getScore());
+        
+        // Explain score
+        ai.timefold.solver.core.api.solver.SolutionManager<Planning, HardSoftScore> solutionManager = ai.timefold.solver.core.api.solver.SolutionManager.create(solverFactory);
+        System.out.println(solutionManager.explain(solution));
+
+        PlanningExporter.exportToHtml(solution, "planning_result_generated.html");
+        System.out.println("Generated Gantt result written to: " + new java.io.File("planning_result_generated.html").getAbsolutePath());
     }
 
     private Planning generateProblem(String fichier) {
@@ -52,6 +115,10 @@ class PlanningControllerTest {
         try (java.io.InputStream inputStream = getClass().getClassLoader()
                 .getResourceAsStream(fichier)) {
             Planning planning = objectMapper.readValue(inputStream, Planning.class);
+            
+            Map<Long, fr.manaken.plannif.model.Classe> classeMap = planning.getClasses().stream().collect(Collectors.toMap(fr.manaken.plannif.model.Classe::getId, c -> c));
+            Map<Long, fr.manaken.plannif.model.Matiere> matiereMap = planning.getMatieres().stream().collect(Collectors.toMap(fr.manaken.plannif.model.Matiere::getId, m -> m));
+
             try (java.io.InputStream is2 = getClass().getClassLoader().getResourceAsStream(fichier)) {
                 com.fasterxml.jackson.databind.JsonNode rootNode = objectMapper.readTree(is2);
                 
@@ -95,10 +162,56 @@ class PlanningControllerTest {
                         planning.getSeances().add(s);
                     }
                 }
+
+                com.fasterxml.jackson.databind.JsonNode presenceNode = rootNode.get("classePresences");
+                if (presenceNode != null && presenceNode.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode pn : presenceNode) {
+                        Long id = pn.get("id").asLong();
+                        Long classeId = pn.get("classe_id").asLong();
+                        planning.getClassePresences().stream()
+                                .filter(cp -> cp.getId().equals(id))
+                                .findFirst()
+                                .ifPresent(cp -> {
+                                    planning.getClasses().stream()
+                                            .filter(c -> c.getId().equals(classeId))
+                                            .findFirst()
+                                            .ifPresent(cp::setClasse);
+                                });
+                    }
+                }
+
+                com.fasterxml.jackson.databind.JsonNode dayOffNode = rootNode.get("professeurDayOffs");
+                if (dayOffNode != null && dayOffNode.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode don : dayOffNode) {
+                        Long id = don.get("id").asLong();
+                        Long profId = don.get("professeur_id").asLong();
+                        planning.getProfesseurDayOffs().stream()
+                                .filter(doff -> doff.getId().equals(id))
+                                .findFirst()
+                                .ifPresent(doff -> {
+                                    planning.getProfesseurs().stream()
+                                            .filter(p -> p.getId().equals(profId))
+                                            .findFirst()
+                                            .ifPresent(doff::setProfesseur);
+                                });
+                    }
+                }
+
+                com.fasterxml.jackson.databind.JsonNode configsNode = rootNode.get("matiereClasseConfigs");
+                if (configsNode != null && configsNode.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode cn : configsNode) {
+                        MatiereClasseConfig config = objectMapper.treeToValue(cn, MatiereClasseConfig.class);
+                        Long classeId = cn.get("classe_id").asLong();
+                        config.setClasse(classeMap.get(classeId));
+                        Long matiereId = cn.get("matiere_id").asLong();
+                        config.setMatiere(matiereMap.get(matiereId));
+                        planning.getMatiereClasseConfigs().add(config);
+                    }
+                }
             }
             return planning;
         } catch (java.io.IOException e) {
-            throw new RuntimeException("Failed to read " + fichier, e);
+            throw new RuntimeException("Erreur de chargement", e);
         }
     }
 

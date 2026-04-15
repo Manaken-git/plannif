@@ -17,41 +17,16 @@
     }
   ],
   "professeurs": [
-    {
-      "id": 1,
-      "nom": "Professeur Alpha",
-      "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0,
-      "matiere_ids": [1, 2]
-    },
-    {
-      "id": 2,
-      "nom": "Professeur Beta",
-      "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0,
-      "matiere_ids": [3, 4]
-    },
-    {
-      "id": 3,
-      "nom": "Professeur Gamma",
-      "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0,
-      "matiere_ids": [5, 6]
-    },
-    {
-      "id": 4,
-      "nom": "Professeur Delta",
-      "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0,
-      "matiere_ids": [1, 2]
-    },
-    {
-      "id": 5,
-      "nom": "Professeur Epsilon",
-      "maxHeuresParJour": 6.0,
-      "maxHeuresParSemaine": 25.0,
-      "matiere_ids": [3, 4]
-    }
+    { "id": 1, "nom": "M. Martin", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [1] },
+    { "id": 2, "nom": "Mme Bernard", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [3] },
+    { "id": 3, "nom": "M. Petit", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [5,2] },
+    { "id": 4, "nom": "Mme Robert", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [1] },
+    { "id": 5, "nom": "M. Richard", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [3] },
+    { "id": 6, "nom": "Mme Durand", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [4] },
+    { "id": 7, "nom": "M. Dubois", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [6] },
+    { "id": 8, "nom": "Mme Moreau", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [4] },
+    { "id": 9, "nom": "M. Laurent", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [2] },
+    { "id": 10, "nom": "Mme Simon", "maxHeuresParJour": 8.0, "maxHeuresParSemaine": 35.0, "matiere_ids": [6] }
   ],
   "matieres": [
     {
