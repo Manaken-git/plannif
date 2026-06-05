@@ -2,9 +2,6 @@ package fr.manaken.plannif.exporter;
 
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.model.Seance;
-import fr.manaken.plannif.model.Professeur;
-import fr.manaken.plannif.model.Classe;
-import fr.manaken.plannif.model.Matiere;
 
 import java.io.FileWriter;
 import java.io.IOException;
