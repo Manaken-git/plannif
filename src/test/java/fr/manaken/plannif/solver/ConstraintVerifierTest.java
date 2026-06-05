@@ -26,19 +26,27 @@ class ConstraintVerifierTest {
         Salle salle = new Salle();
         salle.setId(1L);
 
+        Professeur prof1 = new Professeur();
+        prof1.setId(1L);
+        Professeur prof2 = new Professeur();
+        prof2.setId(2L);
+
         Seance s1 = new Seance();
         s1.setId(1L);
         s1.setSalle(salle);
         s1.setCreneau(creneau);
+        s1.setProfesseur(prof1);
 
         Seance s2 = new Seance();
         s2.setId(2L);
         s2.setSalle(salle);
         s2.setCreneau(creneau);
+        s2.setProfesseur(prof2);
 
         problem.getSeances().addAll(java.util.List.of(s1, s2));
         problem.getSalles().add(salle);
         problem.getCreneaux().add(creneau);
+        problem.getProfesseurs().addAll(java.util.List.of(prof1, prof2));
 
         constraintVerifier.verifyThat(PlanningConstraints::roomConflict)
                 .givenSolution(problem)
@@ -95,22 +103,30 @@ class ConstraintVerifierTest {
         Classe classe = new Classe();
         classe.setId(1L);
 
+        Professeur prof1 = new Professeur();
+        prof1.setId(1L);
+        Professeur prof2 = new Professeur();
+        prof2.setId(2L);
+
         Seance s1 = new Seance();
         s1.setId(1L);
         s1.setClasse(classe);
         s1.setCreneau(creneau);
         s1.setSalle(salle);
+        s1.setProfesseur(prof1);
 
         Seance s2 = new Seance();
         s2.setId(2L);
         s2.setClasse(classe);
         s2.setCreneau(creneau);
         s2.setSalle(salle);
+        s2.setProfesseur(prof2);
 
         problem.getSeances().addAll(java.util.List.of(s1, s2));
         problem.getCreneaux().add(creneau);
         problem.getSalles().add(salle);
         problem.getClasses().add(classe);
+        problem.getProfesseurs().addAll(java.util.List.of(prof1, prof2));
 
         constraintVerifier.verifyThat(PlanningConstraints::studentGroupConflict)
                 .givenSolution(problem)
@@ -328,16 +344,21 @@ class ConstraintVerifierTest {
         Classe classe = new Classe();
         classe.setId(1L);
 
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
         Seance s1 = new Seance();
         s1.setId(1L);
         s1.setClasse(classe);
         s1.setCreneau(creneau);
         s1.setSalle(salle);
+        s1.setProfesseur(prof);
 
         problem.getSeances().add(s1);
         problem.getCreneaux().add(creneau);
         problem.getSalles().add(salle);
         problem.getClasses().add(classe);
+        problem.getProfesseurs().add(prof);
 
         // No presence for this class at this date
         constraintVerifier.verifyThat(PlanningConstraints::studentGroupPresence)

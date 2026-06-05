@@ -174,9 +174,9 @@ public class PlanningConstraints implements ConstraintProvider {
         public Constraint studentGroupConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .join(Seance.class,
-                                                equal(Seance::getClasse),
-                                                equal(Seance::getCreneau),
-                                                lessThan(Seance::getId))
+                                      equal(Seance::getClasse),
+                                      equal(Seance::getCreneau),
+                                      lessThan(Seance::getId))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Student group conflict");
         }

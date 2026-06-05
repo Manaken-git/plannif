@@ -59,6 +59,9 @@ public class TestDataFactory {
         m1.setId(1L);
         m1.setNom("Maths");
 
+        p1.getMatieres().add(m1);
+        p2.getMatieres().add(m1);
+
         // Seances
         Seance seance1 = new Seance();
         seance1.setId(1L);

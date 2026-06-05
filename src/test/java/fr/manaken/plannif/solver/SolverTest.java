@@ -101,6 +101,9 @@ public class SolverTest {
         m1.setId(1L);
         m1.setNom("Maths");
 
+        p1.getMatieres().add(m1);
+        p2.getMatieres().add(m1);
+
         // Presences (mandatory for feasibility)
         fr.manaken.plannif.model.ClassePresence cp1 = new fr.manaken.plannif.model.ClassePresence();
         cp1.setId(1L);
