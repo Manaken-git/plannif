@@ -51,11 +51,6 @@ public class PlanningController {
         return solver.solve(problem);
     }
 
-
-    /**
-     * Endpoint principal : reçoit un Planning (JSON) en entrée,
-     * lance le solver Timefold, et retourne le Planning résolu.
-     */
     @GetMapping("/solve")
     public Planning solve() {
         Solver<Planning> solver = buildSolver();

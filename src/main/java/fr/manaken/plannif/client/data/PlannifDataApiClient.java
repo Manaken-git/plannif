@@ -23,43 +23,44 @@ public class PlannifDataApiClient {
 
     public List<SeanceDto> getSeances() {
         return restClient.get()
-                .uri("/plannif-data/seances/list")
+                .uri("/seances/list")
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<SeanceDto>>() {});
+                .body(new ParameterizedTypeReference<>() {});
     }
 
     public List<ProfesseurDto> getProfesseurs() {
         return restClient.get()
-                .uri("/plannif-data/profs/list")
+                .uri("/profs/list")
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<ProfesseurDto>>() {});
+                .body(new ParameterizedTypeReference<>() {});
     }
 
     public List<ClasseDto> getClasses() {
+
         return restClient.get()
-                .uri("/plannif-data/classes/list")
+                .uri("/classes/list")
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<ClasseDto>>() {});
+                .body(new ParameterizedTypeReference<>() {});
     }
 
     public List<EleveDto> getEleves() {
         return restClient.get()
-                .uri("/plannif-data/eleves/list")
+                .uri("/eleves/list")
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<EleveDto>>() {});
+                .body(new ParameterizedTypeReference<>() {});
     }
 
     public List<MatiereDto> getMatieres() {
         return restClient.get()
-                .uri("/plannif-data/matieres/list")
+                .uri("/matieres/list")
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<MatiereDto>>() {});
+                .body(new ParameterizedTypeReference<>() {});
     }
 
     public List<SalleDto> getSalles() {
         return restClient.get()
-                .uri("/plannif-data/salles/list")
+                .uri("/salles/list")
                 .retrieve()
-                .body(new ParameterizedTypeReference<List<SalleDto>>() {});
+                .body(new ParameterizedTypeReference<>() {});
     }
 }
