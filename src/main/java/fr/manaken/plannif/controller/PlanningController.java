@@ -20,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/planning")
+@CrossOrigin(origins = "http://localhost:5173")
 public class PlanningController {
 
     private Solver<Planning> buildSolver() {
@@ -106,6 +107,9 @@ public class PlanningController {
         p2.setId(2L);
         p2.setNom("Prof2");
 
+        planning.getProfesseurs().add(p1);
+        planning.getProfesseurs().add(p2);
+
         // Classes
         Classe cl1 = new Classe();
         cl1.setId(1L);
@@ -115,10 +119,14 @@ public class PlanningController {
         cl2.setId(2L);
         cl2.setNom("Class2");
 
+        planning.getClasses().add(cl1);
+        planning.getClasses().add(cl2);
+
         // Matieres
         Matiere m1 = new Matiere();
         m1.setId(1L);
         m1.setNom("Maths");
+        planning.getMatieres().add(m1);
 
         // Seances
         Seance seance1 = new Seance();
