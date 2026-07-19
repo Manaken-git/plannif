@@ -11,6 +11,7 @@ import fr.manaken.plannif.model.Matiere;
 import fr.manaken.plannif.model.Professeur;
 import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
+import fr.manaken.plannif.service.PlanningService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -22,6 +23,12 @@ import java.util.List;
 @RequestMapping("/planning")
 @CrossOrigin(origins = "http://localhost:5173")
 public class PlanningController {
+
+    private final PlanningService planningService;
+
+    public PlanningController(PlanningService planningService) {
+        this.planningService = planningService;
+    }
 
     private Solver<Planning> buildSolver() {
         SolverConfig solverConfig = new SolverConfig()
@@ -44,6 +51,17 @@ public class PlanningController {
         return solver.solve(problem);
     }
 
+
+    /**
+     * Endpoint principal : reçoit un Planning (JSON) en entrée,
+     * lance le solver Timefold, et retourne le Planning résolu.
+     */
+    @GetMapping("/solve")
+    public Planning solve() {
+        Solver<Planning> solver = buildSolver();
+        Planning pl = planningService.buildPlanning();
+        return solver.solve(pl);
+    }
     /**
      * Endpoint de test avec des données en dur.
      */
