@@ -3,7 +3,7 @@ package fr.manaken.plannif;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.model.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,8 +15,8 @@ public class TestDataFactory {
         // Creneau
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        c1.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        c1.setDebut(LocalTime.of(8, 0));
+        c1.setFin(LocalTime.of(9, 0));
 
         List<Creneau> creneaux = new ArrayList<>();
         creneaux.add(c1);

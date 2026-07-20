@@ -15,7 +15,7 @@ import fr.manaken.plannif.service.PlanningService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,16 +53,20 @@ public class PlanningController {
 
     @GetMapping("/solve")
     public Planning solve() {
-        Solver<Planning> solver = buildSolver();
-        Planning pl = planningService.buildPlanning();
-        return solver.solve(pl);
+        SolverConfig solverConfig = SolverConfig.createFromXmlResource("solverConfig.xml");
+        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        Solver<Planning> solver = solverFactory.buildSolver();
+
+        Planning problem = planningService.buildPlanning();
+        return solver.solve(problem);
     }
-    /**
-     * Endpoint de test avec des données en dur.
-     */
-    @GetMapping("/test")
-    public String solveTest() {
-        Solver<Planning> solver = buildSolver();
+
+    @GetMapping("/solve-html")
+    public String solveHtml() {
+        SolverConfig solverConfig = SolverConfig.createFromXmlResource("solverConfig.xml");
+        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        Solver<Planning> solver = solverFactory.buildSolver();
+
         Planning problem = generateProblem();
         Planning solution = solver.solve(problem);
 
@@ -90,8 +94,8 @@ public class PlanningController {
         // Creneau
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        c1.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        c1.setDebut(LocalTime.of(8, 0));
+        c1.setFin(LocalTime.of(9, 0));
 
         List<Creneau> creneaux = new ArrayList<>();
         creneaux.add(c1);

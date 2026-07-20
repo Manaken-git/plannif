@@ -1,6 +1,7 @@
 package fr.manaken.plannif.client.data;
 
 import fr.manaken.plannif.client.data.dto.ClasseDto;
+import fr.manaken.plannif.client.data.dto.CreneauDTO;
 import fr.manaken.plannif.client.data.dto.EleveDto;
 import fr.manaken.plannif.client.data.dto.MatiereDto;
 import fr.manaken.plannif.client.data.dto.ProfesseurDto;
@@ -60,6 +61,13 @@ public class PlannifDataApiClient {
     public List<SalleDto> getSalles() {
         return restClient.get()
                 .uri("/salles/list")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {});
+    }
+
+    public List<CreneauDTO> getCreneaux() {
+        return restClient.get()
+                .uri("/creneaux/list")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
     }

@@ -1,6 +1,7 @@
 package fr.manaken.plannif.client.data;
 
 import fr.manaken.plannif.client.data.dto.ClasseDto;
+import fr.manaken.plannif.client.data.dto.CreneauDTO;
 import fr.manaken.plannif.client.data.dto.EleveDto;
 import fr.manaken.plannif.client.data.dto.MatiereDto;
 import fr.manaken.plannif.client.data.dto.ProfesseurDto;
@@ -12,6 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,7 +28,7 @@ class PlannifDataApiClientTest {
 
     @BeforeEach
     void setUp() {
-        RestClient.Builder builder = RestClient.builder().baseUrl("http://localhost:8081");
+        RestClient.Builder builder = RestClient.builder().baseUrl("http://localhost:8081/plannif-data");
         mockServer = MockRestServiceServer.bindTo(builder).build();
         client = new PlannifDataApiClient(builder.build());
     }
@@ -114,5 +116,21 @@ class PlannifDataApiClientTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals("A101", result.get(0).getCode());
+    }
+
+    @Test
+    void testGetCreneaux() {
+        String json = "[{\"id\":50,\"debut\":\"08:00:00\",\"fin\":\"09:00:00\"}]";
+        mockServer.expect(requestTo("http://localhost:8081/plannif-data/creneaux/list"))
+                .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+
+        List<CreneauDTO> result = client.getCreneaux();
+        mockServer.verify();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(50L, result.get(0).id());
+        assertEquals(LocalTime.of(8, 0), result.get(0).debut());
+        assertEquals(LocalTime.of(9, 0), result.get(0).fin());
     }
 }

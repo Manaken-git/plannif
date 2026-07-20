@@ -69,15 +69,14 @@ public class PlanningExporter {
         Map<String, Map<fr.manaken.plannif.model.Professeur, List<Seance>>> sessionsByDayAndProf = planning.getSeances().stream()
                 .filter(s -> s.getCreneau() != null && s.getProfesseur() != null)
                 .collect(Collectors.groupingBy(
-                        s -> s.getCreneau().getDebut().toLocalDate().toString(),
+                        s -> "Planning Général",
                         TreeMap::new,
                         Collectors.groupingBy(Seance::getProfesseur)
                 ));
 
         for (String dayStr : sessionsByDayAndProf.keySet()) {
-            java.time.LocalDate date = java.time.LocalDate.parse(dayStr);
             html.append("    <section class=\"day-section\">\n");
-            html.append("      <h2 class=\"day-title\">").append(date.format(DATE_FORMATTER)).append("</h2>\n");
+            html.append("      <h2 class=\"day-title\">").append(dayStr).append("</h2>\n");
             html.append("      <div class=\"timeline-container\">\n");
             html.append("        <div class=\"timeline-header\"><div class=\"row-label\">Professeur</div>");
             for (int h = 8; h <= 18; h++) html.append("<div class=\"time-slot\">").append(h).append("h</div>");
@@ -220,12 +219,12 @@ public class PlanningExporter {
         html.append("</script>\n");
     }
 
-    private static double calculateOffset(java.time.LocalDateTime start) {
+    private static double calculateOffset(java.time.LocalTime start) {
         double startHour = start.getHour() + (start.getMinute() / 60.0);
         return ((startHour - 8.0) / 11.0) * 100.0;
     }
 
-    private static double calculateWidth(java.time.LocalDateTime start, java.time.LocalDateTime end) {
+    private static double calculateWidth(java.time.LocalTime start, java.time.LocalTime end) {
         long minutes = ChronoUnit.MINUTES.between(start, end);
         return (minutes / (11.0 * 60.0)) * 100.0;
     }

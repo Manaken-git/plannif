@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 class ConstraintVerifierTest {
 
@@ -20,8 +20,8 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau creneau = new Creneau();
         creneau.setId(1L);
-        creneau.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        creneau.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        creneau.setDebut(LocalTime.of(8, 0));
+        creneau.setFin(LocalTime.of(9, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -58,8 +58,8 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau creneau = new Creneau();
         creneau.setId(1L);
-        creneau.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        creneau.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        creneau.setDebut(LocalTime.of(8, 0));
+        creneau.setFin(LocalTime.of(9, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -94,8 +94,8 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau creneau = new Creneau();
         creneau.setId(1L);
-        creneau.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        creneau.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        creneau.setDebut(LocalTime.of(8, 0));
+        creneau.setFin(LocalTime.of(9, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -138,8 +138,8 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau mondayCreneau = new Creneau();
         mondayCreneau.setId(1L);
-        mondayCreneau.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0)); // 2024-01-01 is Monday
-        mondayCreneau.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        mondayCreneau.setDebut(LocalTime.of(8, 0));
+        mondayCreneau.setFin(LocalTime.of(9, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -150,7 +150,7 @@ class ConstraintVerifierTest {
         ProfesseurDayOff dayOff = new ProfesseurDayOff();
         dayOff.setId(1L);
         dayOff.setProfesseur(prof);
-        dayOff.setDayOfWeek(0); // 0 = Monday in the constraint logic (getValue() - 1)
+        dayOff.setDayOfWeek(0);
 
         Seance s1 = new Seance();
         s1.setId(1L);
@@ -174,13 +174,13 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        c1.setFin(LocalDateTime.of(2024, 1, 1, 12, 0)); // 4h
+        c1.setDebut(LocalTime.of(8, 0));
+        c1.setFin(LocalTime.of(12, 0));
 
         Creneau c2 = new Creneau();
         c2.setId(2L);
-        c2.setDebut(LocalDateTime.of(2024, 1, 1, 14, 0));
-        c2.setFin(LocalDateTime.of(2024, 1, 1, 18, 0)); // 4h
+        c2.setDebut(LocalTime.of(14, 0));
+        c2.setFin(LocalTime.of(18, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -216,13 +216,13 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0)); // Week 1
-        c1.setFin(LocalDateTime.of(2024, 1, 1, 18, 0)); // 10h
+        c1.setDebut(LocalTime.of(8, 0));
+        c1.setFin(LocalTime.of(18, 0));
 
         Creneau c2 = new Creneau();
         c2.setId(2L);
-        c2.setDebut(LocalDateTime.of(2024, 1, 2, 8, 0)); // Week 1
-        c2.setFin(LocalDateTime.of(2024, 1, 2, 18, 0)); // 10h
+        c2.setDebut(LocalTime.of(8, 0));
+        c2.setFin(LocalTime.of(18, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -258,8 +258,8 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        c1.setFin(LocalDateTime.of(2024, 1, 1, 12, 0)); // 4h
+        c1.setDebut(LocalTime.of(8, 0));
+        c1.setFin(LocalTime.of(12, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -289,13 +289,13 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau day1 = new Creneau();
         day1.setId(1L);
-        day1.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        day1.setFin(LocalDateTime.of(2024, 1, 1, 11, 0)); // 3h
+        day1.setDebut(LocalTime.of(8, 0));
+        day1.setFin(LocalTime.of(11, 0));
 
         Creneau day2 = new Creneau();
         day2.setId(2L);
-        day2.setDebut(LocalDateTime.of(2024, 1, 2, 8, 0));
-        day2.setFin(LocalDateTime.of(2024, 1, 2, 11, 0)); // 3h
+        day2.setDebut(LocalTime.of(8, 0));
+        day2.setFin(LocalTime.of(11, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -335,8 +335,8 @@ class ConstraintVerifierTest {
         Planning problem = new Planning();
         Creneau creneau = new Creneau();
         creneau.setId(1L);
-        creneau.setDebut(LocalDateTime.of(2024, 1, 1, 8, 0));
-        creneau.setFin(LocalDateTime.of(2024, 1, 1, 9, 0));
+        creneau.setDebut(LocalTime.of(8, 0));
+        creneau.setFin(LocalTime.of(9, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -360,7 +360,7 @@ class ConstraintVerifierTest {
         problem.getClasses().add(classe);
         problem.getProfesseurs().add(prof);
 
-        // No presence for this class at this date
+        // No presence for this class
         constraintVerifier.verifyThat(PlanningConstraints::studentGroupPresence)
                 .givenSolution(problem)
                 .penalizesBy(1);

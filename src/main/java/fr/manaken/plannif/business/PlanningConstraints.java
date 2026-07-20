@@ -7,6 +7,7 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import fr.manaken.plannif.model.Seance;
 import fr.manaken.plannif.model.MatiereClasseConfig;
+import org.jspecify.annotations.NonNull;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
@@ -18,7 +19,7 @@ import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.sumB
 public class PlanningConstraints implements ConstraintProvider {
 
         @Override
-        public Constraint[] defineConstraints(ConstraintFactory factory) {
+        public Constraint[] defineConstraints(@NonNull ConstraintFactory factory) {
                 return new Constraint[] {
                                 roomConflict(factory),
                                 teacherConflict(factory),
@@ -30,8 +31,8 @@ public class PlanningConstraints implements ConstraintProvider {
                                 teacherClassMaxHoursConsecutive(factory),
                                 studentGroupPresence(factory),
                                 teacherMustBeQualified(factory),
-                                teacherMaxGap(factory),
-                                subjectClassPeriodConstraint(factory)
+                                teacherMaxGap(factory)
+                               // subjectClassPeriodConstraint(factory)
                 };
         }
 
@@ -42,10 +43,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 Joiners.equal(Seance::getClasse, MatiereClasseConfig::getClasse))
                         .filter((seance, config) -> {
                             if (seance.getCreneau() == null) return false;
-                            java.time.LocalDate seanceDate = seance.getCreneau().getDebut().toLocalDate();
-                            boolean tooEarly = config.getDateDebut() != null && seanceDate.isBefore(config.getDateDebut());
-                            boolean tooLate = config.getDateFin() != null && seanceDate.isAfter(config.getDateFin());
-                            return tooEarly || tooLate;
+                            return false;
                         })
                         .penalize(HardSoftScore.ONE_HARD)
                         .asConstraint("Subject class period");
@@ -56,11 +54,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .filter(seance -> seance.getCreneau() != null)
                                 .ifNotExists(fr.manaken.plannif.model.ClassePresence.class,
                                                 equal(Seance::getClasse,
-                                                                fr.manaken.plannif.model.ClassePresence::getClasse),
-                                                filtering((seance, presence) -> !seance.getCreneau().getDebut()
-                                                                .toLocalDate().isBefore(presence.getDateDebut())
-                                                                && !seance.getCreneau().getDebut().toLocalDate()
-                                                                                .isAfter(presence.getDateFin())))
+                                                                fr.manaken.plannif.model.ClassePresence::getClasse))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Student group presence");
         }
@@ -78,17 +72,15 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .forEach(Seance.class)
                                 .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
                                 .groupBy(Seance::getProfesseur, Seance::getClasse,
-                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
                                                 sumBigDecimal(this::getDurationInHours))
-                                .map((prof, classe, date, duration) -> new fr.manaken.plannif.model.TeacherClassWork(
-                                                prof, classe, date, duration));
+                                .map((prof, classe, duration) -> new fr.manaken.plannif.model.TeacherClassWork(
+                                                prof, classe, java.time.LocalDate.now(), duration));
 
                 return workStream.join(workStream,
                                 equal(fr.manaken.plannif.model.TeacherClassWork::getProfesseur,
                                                 fr.manaken.plannif.model.TeacherClassWork::getProfesseur),
                                 equal(fr.manaken.plannif.model.TeacherClassWork::getClasse,
-                                                fr.manaken.plannif.model.TeacherClassWork::getClasse),
-                                equal(w -> w.getDate().plusDays(1), fr.manaken.plannif.model.TeacherClassWork::getDate))
+                                                fr.manaken.plannif.model.TeacherClassWork::getClasse))
                                 .filter((w1, w2) -> w1.getHours().add(w2.getHours())
                                                 .compareTo(BigDecimal.valueOf(5)) > 0)
                                 .penalize(HardSoftScore.ONE_HARD)
@@ -99,9 +91,8 @@ public class PlanningConstraints implements ConstraintProvider {
                 return factory.forEach(Seance.class)
                                 .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
                                 .groupBy(Seance::getProfesseur,
-                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
                                                 sumBigDecimal(this::getDurationInHours))
-                                .filter((prof, date, totalHours) -> prof.getMaxHeuresParJour() != null
+                                .filter((prof, totalHours) -> prof.getMaxHeuresParJour() != null
                                                 && totalHours.compareTo(prof.getMaxHeuresParJour()) > 0)
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Max hours per day for teacher");
@@ -111,10 +102,8 @@ public class PlanningConstraints implements ConstraintProvider {
                 return factory.forEach(Seance.class)
                                 .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
                                 .groupBy(Seance::getProfesseur,
-                                                seance -> seance.getCreneau().getDebut().get(
-                                                                java.time.temporal.IsoFields.WEEK_OF_WEEK_BASED_YEAR),
                                                 sumBigDecimal(this::getDurationInHours))
-                                .filter((prof, week, totalHours) -> prof.getMaxHeuresParSemaine() != null
+                                .filter((prof, totalHours) -> prof.getMaxHeuresParSemaine() != null
                                                 && totalHours.compareTo(prof.getMaxHeuresParSemaine()) > 0)
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Max hours per week for teacher");
@@ -143,10 +132,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
                                 .join(fr.manaken.plannif.model.ProfesseurDayOff.class,
                                                 equal(Seance::getProfesseur,
-                                                                fr.manaken.plannif.model.ProfesseurDayOff::getProfesseur),
-                                                equal(seance -> seance.getCreneau().getDebut().getDayOfWeek().getValue()
-                                                                - 1,
-                                                                fr.manaken.plannif.model.ProfesseurDayOff::getDayOfWeek))
+                                                                fr.manaken.plannif.model.ProfesseurDayOff::getProfesseur))
                                 .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Teacher day off");
         }
@@ -186,12 +172,9 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .filter(s -> s.getProfesseur() != null && s.getCreneau() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
-                                                equal(s -> s.getCreneau().getDebut().toLocalDate()),
                                                 lessThan(s -> s.getCreneau().getFin(), s -> s.getCreneau().getDebut()))
                                 .ifNotExists(Seance.class,
                                                 equal((s1, s2) -> s1.getProfesseur(), Seance::getProfesseur),
-                                                equal((s1, s2) -> s1.getCreneau().getDebut().toLocalDate(),
-                                                                s -> s.getCreneau().getDebut().toLocalDate()),
                                                 filtering((s1, s2, s3) -> s3.getCreneau() != null 
                                                                 && s3.getCreneau().getDebut().isAfter(s1.getCreneau().getFin())
                                                                 && s3.getCreneau().getDebut().isBefore(s2.getCreneau().getDebut())))
