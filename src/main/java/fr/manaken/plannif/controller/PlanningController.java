@@ -15,7 +15,7 @@ import fr.manaken.plannif.service.PlanningService;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +48,7 @@ public class PlanningController {
     @PostMapping("/solve")
     public Planning solve(@RequestBody Planning problem) {
         Solver<Planning> solver = buildSolver();
+        planningService.generateSeancesIfNeeded(problem);
         return solver.solve(problem);
     }
 
@@ -58,6 +59,7 @@ public class PlanningController {
         Solver<Planning> solver = solverFactory.buildSolver();
 
         Planning problem = planningService.buildPlanning();
+        planningService.generateSeancesIfNeeded(problem);
         return solver.solve(problem);
     }
 
@@ -94,8 +96,8 @@ public class PlanningController {
         // Creneau
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalTime.of(8, 0));
-        c1.setFin(LocalTime.of(9, 0));
+        c1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        c1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
 
         List<Creneau> creneaux = new ArrayList<>();
         creneaux.add(c1);

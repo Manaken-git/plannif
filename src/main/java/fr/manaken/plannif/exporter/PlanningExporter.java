@@ -90,8 +90,8 @@ public class PlanningExporter {
                 for (int h = 8; h <= 18; h++) html.append("<div class=\"grid-line\"></div>");
                 
                 for (Seance seance : profSessions.get(prof)) {
-                    double offset = calculateOffset(seance.getCreneau().getDebut());
-                    double width = calculateWidth(seance.getCreneau().getDebut(), seance.getCreneau().getFin());
+                    double offset = calculateOffset(seance.getCreneau().getDebut().toLocalTime());
+                    double width = calculateWidth(seance.getCreneau().getDebut().toLocalTime(), seance.getCreneau().getFin().toLocalTime());
                     html.append("            <div class=\"session-bar\" style=\"left: ").append(offset).append("%; width: ").append(width).append("%;\" ")
                             .append("data-prof-id=\"").append(prof.getId()).append("\" ")
                             .append("data-classe-id=\"").append(seance.getClasse().getId()).append("\" ")

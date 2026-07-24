@@ -3,6 +3,7 @@ package fr.manaken.plannif.client.data;
 import fr.manaken.plannif.client.data.dto.ClasseDto;
 import fr.manaken.plannif.client.data.dto.CreneauDTO;
 import fr.manaken.plannif.client.data.dto.EleveDto;
+import fr.manaken.plannif.client.data.dto.MatiereClasseConfigDto;
 import fr.manaken.plannif.client.data.dto.MatiereDto;
 import fr.manaken.plannif.client.data.dto.ProfesseurDto;
 import fr.manaken.plannif.client.data.dto.SalleDto;
@@ -13,7 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
 
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -120,7 +121,7 @@ class PlannifDataApiClientTest {
 
     @Test
     void testGetCreneaux() {
-        String json = "[{\"id\":50,\"debut\":\"08:00:00\",\"fin\":\"09:00:00\"}]";
+        String json = "[{\"id\":50,\"debut\":\"2024-02-12T08:00:00\",\"fin\":\"2024-02-12T09:00:00\"}]";
         mockServer.expect(requestTo("http://localhost:8081/plannif-data/creneaux/list"))
                 .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
 
@@ -130,7 +131,27 @@ class PlannifDataApiClientTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(50L, result.get(0).id());
-        assertEquals(LocalTime.of(8, 0), result.get(0).debut());
-        assertEquals(LocalTime.of(9, 0), result.get(0).fin());
+        assertEquals(LocalDateTime.of(2024, 2, 12, 8, 0), result.get(0).debut());
+        assertEquals(LocalDateTime.of(2024, 2, 12, 9, 0), result.get(0).fin());
+    }
+
+    @Test
+    void testGetMatiereClasseConfigs() {
+        String json = "[{\"id\":100,\"classeId\":1,\"classeNom\":\"6ème 1\",\"matiereId\":2,\"matiereNom\":\"Maths\",\"dateDebut\":\"2024-02-12\",\"dateFin\":\"2024-02-13\"}]";
+        mockServer.expect(requestTo("http://localhost:8081/plannif-data/configs/list"))
+                .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
+
+        List<MatiereClasseConfigDto> result = client.getMatiereClasseConfigs();
+        mockServer.verify();
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(100L, result.get(0).id());
+        assertEquals(1L, result.get(0).classeId());
+        assertEquals("6ème 1", result.get(0).classeNom());
+        assertEquals(2L, result.get(0).matiereId());
+        assertEquals("Maths", result.get(0).matiereNom());
+        assertEquals(java.time.LocalDate.of(2024, 2, 12), result.get(0).dateDebut());
+        assertEquals(java.time.LocalDate.of(2024, 2, 13), result.get(0).dateFin());
     }
 }

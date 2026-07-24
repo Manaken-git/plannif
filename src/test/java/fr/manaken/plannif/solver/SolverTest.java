@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.Duration;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -54,8 +54,9 @@ public class SolverTest {
         // Creneau
         Creneau c1 = new Creneau();
         c1.setId(1L);
-        c1.setDebut(LocalTime.of(8, 0));
-        c1.setFin(LocalTime.of(9, 0));
+        c1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        c1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+
 
         List<Creneau> creneaux = new ArrayList<>();
         creneaux.add(c1);
@@ -108,14 +109,14 @@ public class SolverTest {
         fr.manaken.plannif.model.ClassePresence cp1 = new fr.manaken.plannif.model.ClassePresence();
         cp1.setId(1L);
         cp1.setClasse(cl1);
-        cp1.setDateDebut(LocalDate.of(2024, 1, 1));
-        cp1.setDateFin(LocalDate.of(2024, 1, 1));
+        cp1.setDateDebut(LocalDate.of(2024, 2, 12));
+        cp1.setDateFin(LocalDate.of(2024, 2, 12));
 
         fr.manaken.plannif.model.ClassePresence cp2 = new fr.manaken.plannif.model.ClassePresence();
         cp2.setId(2L);
         cp2.setClasse(cl2);
-        cp2.setDateDebut(LocalDate.of(2024, 1, 1));
-        cp2.setDateFin(LocalDate.of(2024, 1, 1));
+        cp2.setDateDebut(LocalDate.of(2024, 2, 12));
+        cp2.setDateFin(LocalDate.of(2024, 2, 12));
 
         planning.setClassePresences(List.of(cp1, cp2));
 

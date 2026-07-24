@@ -102,11 +102,11 @@ public class AdvancedSolverTest {
 
         Seance s1 = problem.getSeances().get(0);
 
-        // Add presence covering the seance date (2024-01-01)
+        // Add presence covering the seance date (2024-02-12)
         ClassePresence presence = new ClassePresence();
         presence.setClasse(s1.getClasse());
-        presence.setDateDebut(LocalDate.of(2024, 1, 1));
-        presence.setDateFin(LocalDate.of(2024, 1, 1));
+        presence.setDateDebut(LocalDate.of(2024, 2, 12));
+        presence.setDateFin(LocalDate.of(2024, 2, 12));
         problem.setClassePresences(List.of(presence));
 
         // When

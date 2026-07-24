@@ -9,3 +9,8 @@ plannif-data:
   api:
     base-url: http://localhost:8081/planning-data
 
+planning:
+  teaching-weeks: 36
+  standard-session-duration-hours: 2.0
+
+
