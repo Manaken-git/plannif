@@ -149,30 +149,39 @@ public class PlanningConstraints implements ConstraintProvider {
 
         public Constraint roomConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
+                                .filter(s -> s.getSalle() != null && s.getCreneau() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getSalle),
-                                                equal(Seance::getCreneau),
                                                 lessThan(Seance::getId))
+                                .filter((s1, s2) -> s1.getCreneau() != null && s2.getCreneau() != null
+                                                && s1.getCreneau().getDebut().isBefore(s2.getCreneau().getFin())
+                                                && s1.getCreneau().getFin().isAfter(s2.getCreneau().getDebut()))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Room conflict");
         }
 
         public Constraint teacherConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
+                                .filter(s -> s.getProfesseur() != null && s.getCreneau() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
-                                                equal(Seance::getCreneau),
                                                 lessThan(Seance::getId))
+                                .filter((s1, s2) -> s1.getCreneau() != null && s2.getCreneau() != null
+                                                && s1.getCreneau().getDebut().isBefore(s2.getCreneau().getFin())
+                                                && s1.getCreneau().getFin().isAfter(s2.getCreneau().getDebut()))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Teacher conflict");
         }
 
         public Constraint studentGroupConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
+                                .filter(s -> s.getClasse() != null && s.getCreneau() != null)
                                 .join(Seance.class,
-                                      equal(Seance::getClasse),
-                                      equal(Seance::getCreneau),
-                                      lessThan(Seance::getId))
+                                              equal(Seance::getClasse),
+                                              lessThan(Seance::getId))
+                                .filter((s1, s2) -> s1.getCreneau() != null && s2.getCreneau() != null
+                                                && s1.getCreneau().getDebut().isBefore(s2.getCreneau().getFin())
+                                                && s1.getCreneau().getFin().isAfter(s2.getCreneau().getDebut()))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Student group conflict");
         }
