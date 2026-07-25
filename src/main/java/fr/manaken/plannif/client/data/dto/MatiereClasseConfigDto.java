@@ -9,5 +9,6 @@ public record MatiereClasseConfigDto(
         Long matiereId,
         String matiereNom,
         LocalDate dateDebut,
-        LocalDate dateFin
+        LocalDate dateFin,
+        Long volumeHorairePeriode
 ) {}

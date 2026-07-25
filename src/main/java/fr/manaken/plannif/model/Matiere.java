@@ -18,8 +18,6 @@ public class Matiere {
 
     private String nom;
 
-    private Long volumeHoraireAnnuel; // Nouveau champ
-
     
     private Set<Seance> seances = new HashSet<>();
 }

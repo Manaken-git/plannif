@@ -32,4 +32,5 @@ public class MatiereClasseConfig {
 
     private LocalDate dateDebut;
     private LocalDate dateFin;
+    private Long volumeHorairePeriode;
 }

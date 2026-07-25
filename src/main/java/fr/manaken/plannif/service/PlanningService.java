@@ -3,7 +3,6 @@ package fr.manaken.plannif.service;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.model.*;
 import org.springframework.beans.factory.annotation.Value;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import fr.manaken.plannif.client.data.PlannifDataApiClient;
 import fr.manaken.plannif.client.data.mapper.ClasseMapper;
@@ -21,9 +20,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class PlanningService {
-
-    @Value("${planning.teaching-weeks:36}")
-    private int teachingWeeks;
 
     @Value("${planning.standard-session-duration-hours:2.0}")
     private double standardSessionDurationHours;
@@ -137,8 +133,8 @@ public class PlanningService {
                 continue;
             }
 
-            Long volAnnuel = matiere.getVolumeHoraireAnnuel();
-            if (volAnnuel == null || volAnnuel <= 0) {
+            Long volPeriode = config.getVolumeHorairePeriode();
+            if (volPeriode == null || volPeriode <= 0) {
                 continue;
             }
 
@@ -146,11 +142,7 @@ public class PlanningService {
                 continue;
             }
 
-            double volHebdo = (double) volAnnuel / (double) teachingWeeks;
-            long days = ChronoUnit.DAYS.between(config.getDateDebut(), config.getDateFin()) + 1;
-            double weeks = (double) days / 7.0;
-            double totalHours = volHebdo * weeks;
-            int count = (int) Math.round(totalHours / standardSessionDurationHours);
+            int count = (int) Math.round((double) volPeriode / standardSessionDurationHours);
 
             for (int i = 0; i < count; i++) {
                 Seance seance = new Seance();

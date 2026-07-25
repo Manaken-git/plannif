@@ -93,7 +93,7 @@ class PlannifDataApiClientTest {
 
     @Test
     void testGetMatieres() {
-        String json = "[{\"id\":30,\"nom\":\"Mathématiques\",\"volumeHoraireAnnuel\":120}]";
+        String json = "[{\"id\":30,\"nom\":\"Mathématiques\"}]";
         mockServer.expect(requestTo("http://localhost:8081/plannif-data/matieres/list"))
                 .andRespond(withSuccess(json, MediaType.APPLICATION_JSON));
 

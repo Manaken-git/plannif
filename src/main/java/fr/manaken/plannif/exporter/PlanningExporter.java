@@ -148,8 +148,6 @@ public class PlanningExporter {
                 if (nb != null) target = nb.doubleValue();
             } else if (entry.getKey() instanceof fr.manaken.plannif.model.Matiere) {
                 name = ((fr.manaken.plannif.model.Matiere)entry.getKey()).getNom();
-                Long vol = ((fr.manaken.plannif.model.Matiere)entry.getKey()).getVolumeHoraireAnnuel();
-                if (vol != null) target = vol.doubleValue();
             } else if (entry.getKey() instanceof fr.manaken.plannif.model.Classe) {
                 name = ((fr.manaken.plannif.model.Classe)entry.getKey()).getNom();
                 target = -1; // No target for class in basic model
