@@ -7,7 +7,7 @@ import org.mapstruct.ReportingPolicy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
+@Mapper(componentModel = "spring", uses = { ClassePresenceMapper.class }, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface ClasseMapper {
     ClasseDto toDto(Classe entity);
     Classe toEntity(ClasseDto dto);

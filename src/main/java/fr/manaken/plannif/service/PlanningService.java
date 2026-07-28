@@ -94,6 +94,16 @@ public class PlanningService {
             }
         }
 
+        List<ClassePresence> allPresences = new ArrayList<>();
+        for (Classe c : classes) {
+            if (c.getPresences() != null) {
+                for (ClassePresence cp : c.getPresences()) {
+                    cp.setClasse(c);
+                    allPresences.add(cp);
+                }
+            }
+        }
+
         planning.setClasses(classes);
         planning.setProfesseurs(professeurs);
         planning.setMatieres(matieres);
@@ -101,6 +111,7 @@ public class PlanningService {
         planning.setCreneaux(creneaux);
         planning.setMatiereClasseConfigs(matiereClasseConfigs);
         planning.setSeances(seances);
+        planning.setClassePresences(allPresences);
 
         return planning;
     }

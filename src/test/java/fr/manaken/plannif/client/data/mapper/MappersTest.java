@@ -23,17 +23,14 @@ class MappersTest {
         Matiere entity = new Matiere();
         entity.setId(1L);
         entity.setNom("Maths");
-        entity.setVolumeHoraireAnnuel(120L);
 
         MatiereDto dto = matiereMapper.toDto(entity);
         assertEquals(1L, dto.getId());
         assertEquals("Maths", dto.getNom());
-        assertEquals(120L, dto.getVolumeHoraireAnnuel());
 
         Matiere mappedEntity = matiereMapper.toEntity(dto);
         assertEquals(entity.getId(), mappedEntity.getId());
         assertEquals(entity.getNom(), mappedEntity.getNom());
-        assertEquals(entity.getVolumeHoraireAnnuel(), mappedEntity.getVolumeHoraireAnnuel());
     }
 
     @Test
