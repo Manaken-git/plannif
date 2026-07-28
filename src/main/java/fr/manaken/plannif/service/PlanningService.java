@@ -12,6 +12,7 @@ import fr.manaken.plannif.client.data.mapper.ProfesseurMapper;
 import fr.manaken.plannif.client.data.mapper.SalleMapper;
 import fr.manaken.plannif.client.data.mapper.SeanceMapper;
 import fr.manaken.plannif.client.data.mapper.MatiereClasseConfigMapper;
+import fr.manaken.plannif.client.data.mapper.VacancesMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +33,7 @@ public class PlanningService {
     private final SalleMapper salleMapper;
     private final SeanceMapper seanceMapper;
     private final MatiereClasseConfigMapper matiereClasseConfigMapper;
+    private final VacancesMapper vacancesMapper;
 
     public PlanningService(PlannifDataApiClient plannifDataApiClient,
                            ClasseMapper classeMapper,
@@ -40,7 +42,8 @@ public class PlanningService {
                            ProfesseurMapper professeurMapper,
                            SalleMapper salleMapper,
                            SeanceMapper seanceMapper,
-                           MatiereClasseConfigMapper matiereClasseConfigMapper) {
+                           MatiereClasseConfigMapper matiereClasseConfigMapper,
+                           VacancesMapper vacancesMapper) {
         this.plannifDataApiClient = plannifDataApiClient;
         this.classeMapper = classeMapper;
         this.creneauMapper = creneauMapper;
@@ -49,6 +52,7 @@ public class PlanningService {
         this.salleMapper = salleMapper;
         this.seanceMapper = seanceMapper;
         this.matiereClasseConfigMapper = matiereClasseConfigMapper;
+        this.vacancesMapper = vacancesMapper;
     }
 
     public Planning buildPlanning() {
@@ -104,6 +108,16 @@ public class PlanningService {
             }
         }
 
+        List<Vacances> vacances = new ArrayList<>();
+        try {
+            List<fr.manaken.plannif.client.data.dto.VacancesDto> vacancesDtos = plannifDataApiClient.getVacances();
+            if (vacancesDtos != null) {
+                vacances = vacancesMapper.toEntityList(vacancesDtos);
+            }
+        } catch (Exception e) {
+            // Log and default to empty
+        }
+
         planning.setClasses(classes);
         planning.setProfesseurs(professeurs);
         planning.setMatieres(matieres);
@@ -112,6 +126,7 @@ public class PlanningService {
         planning.setMatiereClasseConfigs(matiereClasseConfigs);
         planning.setSeances(seances);
         planning.setClassePresences(allPresences);
+        planning.setVacances(vacances);
 
         return planning;
     }

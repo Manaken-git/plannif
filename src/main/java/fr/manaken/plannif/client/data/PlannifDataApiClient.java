@@ -8,6 +8,7 @@ import fr.manaken.plannif.client.data.dto.ProfesseurDto;
 import fr.manaken.plannif.client.data.dto.SalleDto;
 import fr.manaken.plannif.client.data.dto.SeanceDto;
 import fr.manaken.plannif.client.data.dto.MatiereClasseConfigDto;
+import fr.manaken.plannif.client.data.dto.VacancesDto;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -76,6 +77,13 @@ public class PlannifDataApiClient {
     public List<MatiereClasseConfigDto> getMatiereClasseConfigs() {
         return restClient.get()
                 .uri("/configs/list")
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {});
+    }
+
+    public List<VacancesDto> getVacances() {
+        return restClient.get()
+                .uri("/vacances/list")
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
     }

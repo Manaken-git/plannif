@@ -34,8 +34,21 @@ public class PlanningConstraints implements ConstraintProvider {
                                 teacherMaxGap(factory),
                                 subjectClassPeriodConstraint(factory),
                                 subjectClassMaxSessionsPerDay(factory),
-                                subjectClassSpreading(factory)
+                                subjectClassSpreading(factory),
+                                holidayConflict(factory)
                 };
+        }
+
+        private Constraint holidayConflict(ConstraintFactory factory) {
+                return factory.forEach(Seance.class)
+                                .filter(seance -> seance.getCreneau() != null)
+                                .join(fr.manaken.plannif.model.Vacances.class,
+                                                filtering((seance, vacance) -> {
+                                                        java.time.LocalDate date = seance.getCreneau().getDebut().toLocalDate();
+                                                        return !date.isBefore(vacance.getDateDebut()) && !date.isAfter(vacance.getDateFin());
+                                                }))
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("Holiday conflict");
         }
 
         private Constraint subjectClassPeriodConstraint(ConstraintFactory constraintFactory) {

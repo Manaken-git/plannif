@@ -51,6 +51,9 @@ public class Planning {
     @ProblemFactCollectionProperty
     private List<fr.manaken.plannif.model.MatiereClasseConfig> matiereClasseConfigs = new java.util.ArrayList<>();
 
+    @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.Vacances> vacances = new java.util.ArrayList<>();
+
     @PlanningScore
     private HardSoftScore score;
 
