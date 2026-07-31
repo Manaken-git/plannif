@@ -1,6 +1,7 @@
 package fr.manaken.plannif.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,5 +20,6 @@ public class Matiere {
     private String nom;
 
     
+    @JsonIgnore
     private Set<Seance> seances = new HashSet<>();
 }

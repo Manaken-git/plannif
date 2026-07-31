@@ -7,6 +7,7 @@ package fr.manaken.plannif.model;
 
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.EqualsAndHashCode;
@@ -25,6 +26,7 @@ public class ProfesseurDayOff {
 
     
     
+    @JsonIgnore
     private Professeur professeur;
 
     /**

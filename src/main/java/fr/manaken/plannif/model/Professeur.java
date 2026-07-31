@@ -1,6 +1,7 @@
 package fr.manaken.plannif.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.EqualsAndHashCode;
@@ -33,6 +34,7 @@ public class Professeur {
     private PlageHoraire plageHorairePreferee; // Nouveau champ
 
     
+    @JsonIgnore
     private Set<Seance> seances = new HashSet<>();
 
     

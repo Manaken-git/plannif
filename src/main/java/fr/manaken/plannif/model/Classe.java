@@ -1,6 +1,7 @@
 package fr.manaken.plannif.model;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.EqualsAndHashCode;
@@ -22,9 +23,11 @@ public class Classe {
     private String nom;
 
     
+    @JsonIgnore
     private Set<Seance> seances = new HashSet<>();
 
     
+    @JsonIgnore
     private Set<Eleve> eleves = new HashSet<>();
 
     
