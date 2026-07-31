@@ -108,6 +108,16 @@ public class PlanningService {
             }
         }
 
+        List<ProfesseurDayOff> allDaysOff = new ArrayList<>();
+        for (Professeur p : professeurs) {
+            if (p.getDaysOff() != null) {
+                for (ProfesseurDayOff pdo : p.getDaysOff()) {
+                    pdo.setProfesseur(p);
+                    allDaysOff.add(pdo);
+                }
+            }
+        }
+
         List<Vacances> vacances = new ArrayList<>();
         try {
             List<fr.manaken.plannif.client.data.dto.VacancesDto> vacancesDtos = plannifDataApiClient.getVacances();
@@ -126,6 +136,7 @@ public class PlanningService {
         planning.setMatiereClasseConfigs(matiereClasseConfigs);
         planning.setSeances(seances);
         planning.setClassePresences(allPresences);
+        planning.setProfesseurDayOffs(allDaysOff);
         planning.setVacances(vacances);
 
         return planning;

@@ -91,15 +91,20 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .forEach(Seance.class)
                                 .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
                                 .groupBy(Seance::getProfesseur, Seance::getClasse,
+                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
                                                 sumBigDecimal(this::getDurationInHours))
-                                .map((prof, classe, duration) -> new fr.manaken.plannif.model.TeacherClassWork(
-                                                prof, classe, java.time.LocalDate.now(), duration));
+                                .map((prof, classe, date, duration) -> new fr.manaken.plannif.model.TeacherClassWork(
+                                                prof, classe, date, duration));
 
                 return workStream.join(workStream,
                                 equal(fr.manaken.plannif.model.TeacherClassWork::getProfesseur,
                                                 fr.manaken.plannif.model.TeacherClassWork::getProfesseur),
                                 equal(fr.manaken.plannif.model.TeacherClassWork::getClasse,
-                                                fr.manaken.plannif.model.TeacherClassWork::getClasse))
+                                                fr.manaken.plannif.model.TeacherClassWork::getClasse),
+                                filtering((w1, w2) -> {
+                                        long daysBetween = ChronoUnit.DAYS.between(w1.getDate(), w2.getDate());
+                                        return daysBetween == 1; // 2 jours consécutifs
+                                }))
                                 .filter((w1, w2) -> w1.getHours().add(w2.getHours())
                                                 .compareTo(BigDecimal.valueOf(5)) > 0)
                                 .penalize(HardSoftScore.ONE_HARD)
@@ -204,7 +209,8 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .filter(s -> s.getProfesseur() != null && s.getCreneau() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
-                                                lessThan(s -> s.getCreneau().getFin(), s -> s.getCreneau().getDebut()))
+                                                filtering((s1, s2) -> s1.getCreneau().getFin().toLocalDate().equals(s2.getCreneau().getDebut().toLocalDate())
+                                                                && s1.getCreneau().getFin().isBefore(s2.getCreneau().getDebut())))
                                 .ifNotExists(Seance.class,
                                                 equal((s1, s2) -> s1.getProfesseur(), Seance::getProfesseur),
                                                 filtering((s1, s2, s3) -> s3.getCreneau() != null 
@@ -212,7 +218,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                                                 && s3.getCreneau().getDebut().isBefore(s2.getCreneau().getDebut())))
                                 .filter((s1, s2) -> ChronoUnit.MINUTES.between(s1.getCreneau().getFin(),
                                                 s2.getCreneau().getDebut()) > 120)
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Teacher max gap 2h");
         }
 

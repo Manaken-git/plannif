@@ -20,4 +20,7 @@ public class ProfesseurDto {
     private BigDecimal maxHeuresParJour;
     private BigDecimal maxHeuresParSemaine;
     private BigDecimal maxHeuresParSeance;
+    
+    private java.util.Set<MatiereDto> matieres;
+    private java.util.List<ProfesseurDayOffDto> daysOff;
 }

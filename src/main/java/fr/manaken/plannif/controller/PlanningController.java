@@ -1,16 +1,12 @@
 package fr.manaken.plannif.controller;
 
+import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.Solver;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
-import fr.manaken.plannif.model.Classe;
-import fr.manaken.plannif.model.Creneau;
-import fr.manaken.plannif.model.Matiere;
-import fr.manaken.plannif.model.Professeur;
-import fr.manaken.plannif.model.Salle;
-import fr.manaken.plannif.model.Seance;
+import fr.manaken.plannif.model.*;
 import fr.manaken.plannif.service.PlanningService;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,15 +26,14 @@ public class PlanningController {
         this.planningService = planningService;
     }
 
-    private Solver<Planning> buildSolver() {
+    private SolverFactory<Planning> getSolverFactory() {
         SolverConfig solverConfig = new SolverConfig()
                 .withSolutionClass(Planning.class)
                 .withEntityClasses(Seance.class)
                 .withConstraintProviderClass(PlanningConstraints.class)
                 .withTerminationSpentLimit(Duration.ofSeconds(30));
 
-        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
-        return solverFactory.buildSolver();
+        return SolverFactory.create(solverConfig);
     }
 
     /**
@@ -47,9 +42,20 @@ public class PlanningController {
      */
     @PostMapping("/solve")
     public Planning solve(@RequestBody Planning problem) {
-        Solver<Planning> solver = buildSolver();
+        SolverFactory<Planning> solverFactory = getSolverFactory();
+        Solver<Planning> solver = solverFactory.buildSolver();
         planningService.generateSeancesIfNeeded(problem);
-        return solver.solve(problem);
+        Planning solution = solver.solve(problem);
+
+        // Explication du score dans la console
+        var solutionManager = SolutionManager.create(solverFactory);
+        var explanation = solutionManager.explain(solution);
+        System.out.println("=========================================================================");
+        System.out.println("TIMEFOLD SOLVER SCORE EXPLANATION :");
+        System.out.println(explanation.getSummary());
+        System.out.println("=========================================================================");
+
+        return solution;
     }
 
     @GetMapping("/solve")
@@ -60,7 +66,17 @@ public class PlanningController {
 
         Planning problem = planningService.buildPlanning();
         planningService.generateSeancesIfNeeded(problem);
-        return solver.solve(problem);
+        Planning solution = solver.solve(problem);
+
+        // Explication du score dans la console
+        var solutionManager = SolutionManager.create(solverFactory);
+        var explanation = solutionManager.explain(solution);
+        System.out.println("=========================================================================");
+        System.out.println("TIMEFOLD SOLVER SCORE EXPLANATION :");
+        System.out.println(explanation.getSummary());
+        System.out.println("=========================================================================");
+
+        return solution;
     }
 
     @GetMapping("/solve-html")
@@ -71,6 +87,14 @@ public class PlanningController {
 
         Planning problem = generateProblem();
         Planning solution = solver.solve(problem);
+
+        // Explication du score dans la console
+        var solutionManager = SolutionManager.create(solverFactory);
+        var explanation = solutionManager.explain(solution);
+        System.out.println("=========================================================================");
+        System.out.println("TIMEFOLD SOLVER SCORE EXPLANATION (HTML version) :");
+        System.out.println(explanation.getSummary());
+        System.out.println("=========================================================================");
 
         StringBuilder sb = new StringBuilder();
         sb.append("<h1>Planning Result</h1>");
