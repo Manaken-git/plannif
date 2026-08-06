@@ -41,11 +41,12 @@ public class TeacherClassWork {
             return false;
         TeacherClassWork that = (TeacherClassWork) o;
         return Objects.equals(professeur, that.professeur) && Objects.equals(classe, that.classe)
-                && Objects.equals(date, that.date);
+                && Objects.equals(date, that.date)
+                && (hours == null ? that.hours == null : (that.hours != null && hours.compareTo(that.hours) == 0));
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(professeur, classe, date);
+        return Objects.hash(professeur, classe, date, hours == null ? 0 : hours.stripTrailingZeros());
     }
 }

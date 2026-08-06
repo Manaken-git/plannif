@@ -5,7 +5,10 @@
     <scoreDirectorFactory>
         <constraintProviderClass>fr.manaken.plannif.business.PlanningConstraints</constraintProviderClass>
     </scoreDirectorFactory>
-    <termination>
-        <secondsSpentLimit>60</secondsSpentLimit>
-    </termination>
+    <constructionHeuristic/>
+    <localSearch>
+        <termination>
+            <secondsSpentLimit>120</secondsSpentLimit>
+        </termination>
+    </localSearch>
 </solver>

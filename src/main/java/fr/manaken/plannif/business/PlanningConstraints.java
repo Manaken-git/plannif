@@ -7,12 +7,14 @@ import ai.timefold.solver.core.api.score.stream.ConstraintProvider;
 import ai.timefold.solver.core.api.score.stream.Joiners;
 import fr.manaken.plannif.model.Seance;
 import fr.manaken.plannif.model.MatiereClasseConfig;
+import fr.manaken.plannif.model.TeacherClassWork;
 import org.jspecify.annotations.NonNull;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import static ai.timefold.solver.core.api.score.stream.Joiners.equal;
 import static ai.timefold.solver.core.api.score.stream.Joiners.lessThan;
+import static ai.timefold.solver.core.api.score.stream.Joiners.greaterThan;
 import static ai.timefold.solver.core.api.score.stream.Joiners.filtering;
 import static ai.timefold.solver.core.api.score.stream.ConstraintCollectors.sumBigDecimal;
 
@@ -93,21 +95,17 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .groupBy(Seance::getProfesseur, Seance::getClasse,
                                                 seance -> seance.getCreneau().getDebut().toLocalDate(),
                                                 sumBigDecimal(this::getDurationInHours))
-                                .map((prof, classe, date, duration) -> new fr.manaken.plannif.model.TeacherClassWork(
-                                                prof, classe, date, duration));
+                                .map(TeacherClassWork::new);
 
                 return workStream.join(workStream,
                                 equal(fr.manaken.plannif.model.TeacherClassWork::getProfesseur,
                                                 fr.manaken.plannif.model.TeacherClassWork::getProfesseur),
                                 equal(fr.manaken.plannif.model.TeacherClassWork::getClasse,
                                                 fr.manaken.plannif.model.TeacherClassWork::getClasse),
-                                filtering((w1, w2) -> {
-                                        long daysBetween = ChronoUnit.DAYS.between(w1.getDate(), w2.getDate());
-                                        return daysBetween == 1; // 2 jours consécutifs
-                                }))
+                                equal(w -> w.getDate().plusDays(1), fr.manaken.plannif.model.TeacherClassWork::getDate))
                                 .filter((w1, w2) -> w1.getHours().add(w2.getHours())
                                                 .compareTo(BigDecimal.valueOf(5)) > 0)
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Teacher class max 5h consecutive 2 days");
         }
 
@@ -119,7 +117,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                                 sumBigDecimal(this::getDurationInHours))
                                 .filter((prof, date, totalHours) -> prof.getMaxHeuresParJour() != null
                                                 && totalHours.compareTo(prof.getMaxHeuresParJour()) > 0)
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Max hours per day for teacher");
         }
 
@@ -132,7 +130,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                                 sumBigDecimal(this::getDurationInHours))
                                 .filter((prof, week, totalHours) -> prof.getMaxHeuresParSemaine() != null
                                                 && totalHours.compareTo(prof.getMaxHeuresParSemaine()) > 0)
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Max hours per week for teacher");
         }
 
@@ -145,7 +143,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                                          && duration.compareTo(seance.getProfesseur()
                                                                          .getMaxHeuresParSeance()) > 0;
                                 })
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Max hours per session for teacher");
         }
 
@@ -209,13 +207,12 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .filter(s -> s.getProfesseur() != null && s.getCreneau() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
-                                                filtering((s1, s2) -> s1.getCreneau().getFin().toLocalDate().equals(s2.getCreneau().getDebut().toLocalDate())
-                                                                && s1.getCreneau().getFin().isBefore(s2.getCreneau().getDebut())))
+                                                equal(s -> s.getCreneau().getFin().toLocalDate(), s -> s.getCreneau().getDebut().toLocalDate()),
+                                                lessThan(s -> s.getCreneau().getFin(), s -> s.getCreneau().getDebut()))
                                 .ifNotExists(Seance.class,
                                                 equal((s1, s2) -> s1.getProfesseur(), Seance::getProfesseur),
-                                                filtering((s1, s2, s3) -> s3.getCreneau() != null 
-                                                                && s3.getCreneau().getDebut().isAfter(s1.getCreneau().getFin())
-                                                                && s3.getCreneau().getDebut().isBefore(s2.getCreneau().getDebut())))
+                                                lessThan((s1, s2) -> s1.getCreneau().getFin(), s -> s.getCreneau().getDebut()),
+                                                greaterThan((s1, s2) -> s2.getCreneau().getDebut(), s -> s.getCreneau().getDebut()))
                                 .filter((s1, s2) -> ChronoUnit.MINUTES.between(s1.getCreneau().getFin(),
                                                 s2.getCreneau().getDebut()) > 120)
                                 .penalize(HardSoftScore.ONE_SOFT)
@@ -230,7 +227,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                                 seance -> seance.getCreneau().getDebut().toLocalDate(),
                                                 ai.timefold.solver.core.api.score.stream.ConstraintCollectors.count())
                                 .filter((classe, matiere, date, count) -> count > 1)
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Subject class max sessions per day");
         }
 
