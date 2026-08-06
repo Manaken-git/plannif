@@ -16,5 +16,6 @@ public class Creneau {
 
     private LocalDateTime debut;
     private LocalDateTime fin;
+    private SemaineType semaineType;
 }
 

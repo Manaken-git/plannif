@@ -6,6 +6,7 @@ import ai.timefold.solver.core.config.solver.SolverConfig;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
 import fr.manaken.plannif.model.Creneau;
+import fr.manaken.plannif.model.SemaineType;
 import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
 import fr.manaken.plannif.model.Professeur;
@@ -56,7 +57,7 @@ public class SolverTest {
         c1.setId(1L);
         c1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
         c1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
-
+        c1.setSemaineType(SemaineType.SEMAINE_1);
 
         List<Creneau> creneaux = new ArrayList<>();
         creneaux.add(c1);

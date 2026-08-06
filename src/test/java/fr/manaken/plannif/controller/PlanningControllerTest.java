@@ -12,6 +12,8 @@ import fr.manaken.plannif.model.Seance;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -104,6 +106,38 @@ class PlanningControllerTest {
 
         PlanningExporter.exportToHtml(solution, "planning_result_generated.html");
         System.out.println("Generated Gantt result written to: " + new java.io.File("planning_result_generated.html").getAbsolutePath());
+    }
+
+    @Test
+    void testGenerateCreneaux() {
+        fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
+                null, null, null, null, null, null, null, null, null
+        );
+
+        Planning planning = new Planning();
+        planning.setCreneaux(new java.util.ArrayList<>());
+
+        fr.manaken.plannif.model.ClassePresence presence = new fr.manaken.plannif.model.ClassePresence();
+        presence.setId(1L);
+        presence.setDateDebut(LocalDate.of(2024, 2, 12)); // Monday
+        presence.setDateFin(LocalDate.of(2024, 2, 16));   // Friday
+        planning.setClassePresences(java.util.List.of(presence));
+
+        planningService.generateCreneauxIfNeeded(planning);
+
+        assertThat(planning.getCreneaux()).isNotEmpty();
+        // 5 days * (8 default 1h slots + 6 TP 1h30 slots) = 70 slots
+        assertThat(planning.getCreneaux()).hasSize(70);
+
+        fr.manaken.plannif.model.Creneau first = planning.getCreneaux().get(0);
+        assertThat(first.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 12, 8, 0));
+        assertThat(first.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 12, 9, 0));
+        assertThat(first.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
+
+        fr.manaken.plannif.model.Creneau last = planning.getCreneaux().get(69);
+        assertThat(last.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 16, 16, 0));
+        assertThat(last.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 16, 17, 30));
+        assertThat(last.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
     }
 
     private Planning generateProblem(String fichier) {
@@ -207,6 +241,22 @@ class PlanningControllerTest {
                     }
                 }
             }
+
+            // Populate semaineType on creneaux based on presence periods for backward compatibility in tests
+            for (fr.manaken.plannif.model.Creneau c : planning.getCreneaux()) {
+                if (c.getSemaineType() == null) {
+                    for (fr.manaken.plannif.model.ClassePresence cp : planning.getClassePresences()) {
+                        java.time.LocalDate d = c.getDebut().toLocalDate();
+                        if (!d.isBefore(cp.getDateDebut()) && !d.isAfter(cp.getDateFin())) {
+                            long days = java.time.temporal.ChronoUnit.DAYS.between(cp.getDateDebut(), d);
+                            int weekIndex = (int) (days / 7) + 1;
+                            c.setSemaineType(fr.manaken.plannif.model.SemaineType.fromIndex(weekIndex));
+                            break;
+                        }
+                    }
+                }
+            }
+
             return planning;
         } catch (java.io.IOException e) {
             throw new RuntimeException("Erreur de chargement", e);

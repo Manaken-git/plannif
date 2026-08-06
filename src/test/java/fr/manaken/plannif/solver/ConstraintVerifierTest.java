@@ -378,4 +378,193 @@ class ConstraintVerifierTest {
                 .givenSolution(problem)
                 .penalizesBy(0);
     }
+
+    @Test
+    void studentGroupWeekTypeMismatch() {
+        Planning problem = new Planning();
+        
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        ClassePresence presence = new ClassePresence();
+        presence.setId(1L);
+        presence.setClasse(classe);
+        presence.setDateDebut(LocalDate.of(2024, 2, 12));
+        presence.setDateFin(LocalDate.of(2024, 2, 25));
+
+        Creneau c1 = new Creneau();
+        c1.setId(1L);
+        c1.setDebut(LocalDateTime.of(2024, 2, 14, 10, 0));
+        c1.setFin(LocalDateTime.of(2024, 2, 14, 12, 0));
+        c1.setSemaineType(SemaineType.SEMAINE_1);
+
+        Creneau c2 = new Creneau();
+        c2.setId(2L);
+        c2.setDebut(LocalDateTime.of(2024, 2, 21, 10, 0));
+        c2.setFin(LocalDateTime.of(2024, 2, 21, 12, 0));
+        c2.setSemaineType(SemaineType.SEMAINE_1);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setCreneau(c1);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setClasse(classe);
+        s2.setCreneau(c2);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+
+        problem.getSeances().addAll(java.util.List.of(s1, s2));
+        problem.getCreneaux().addAll(java.util.List.of(c1, c2));
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+        problem.getClasses().add(classe);
+        problem.getClassePresences().add(presence);
+
+        constraintVerifier.verifyThat(PlanningConstraints::studentGroupWeekTypeMismatch)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void vieDeClasseLastFridayMorning() {
+        Planning problem = new Planning();
+        
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        ClassePresence presence = new ClassePresence();
+        presence.setId(1L);
+        presence.setClasse(classe);
+        presence.setDateDebut(LocalDate.of(2024, 2, 12));
+        presence.setDateFin(LocalDate.of(2024, 2, 25));
+
+        Creneau c1 = new Creneau();
+        c1.setId(1L);
+        c1.setDebut(LocalDateTime.of(2024, 2, 23, 9, 0));
+        c1.setFin(LocalDateTime.of(2024, 2, 23, 10, 0));
+
+        Creneau c2 = new Creneau();
+        c2.setId(2L);
+        c2.setDebut(LocalDateTime.of(2024, 2, 23, 14, 0));
+        c2.setFin(LocalDateTime.of(2024, 2, 23, 15, 0));
+
+        Creneau c3 = new Creneau();
+        c3.setId(3L);
+        c3.setDebut(LocalDateTime.of(2024, 2, 16, 9, 0));
+        c3.setFin(LocalDateTime.of(2024, 2, 16, 10, 0));
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s1.setCreneau(c1);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setClasse(classe);
+        s2.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s2.setCreneau(c2);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+
+        Seance s3 = new Seance();
+        s3.setId(3L);
+        s3.setClasse(classe);
+        s3.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s3.setCreneau(c3);
+        s3.setSalle(salle);
+        s3.setProfesseur(prof);
+
+        problem.getSeances().addAll(java.util.List.of(s1, s2, s3));
+        problem.getCreneaux().addAll(java.util.List.of(c1, c2, c3));
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+        problem.getClasses().add(classe);
+        problem.getClassePresences().add(presence);
+
+        constraintVerifier.verifyThat(PlanningConstraints::vieDeClasseLastFridayMorning)
+                .givenSolution(problem)
+                .penalizesBy(2);
+    }
+
+    @Test
+    void seanceTypeDurationMatch() {
+        Planning problem = new Planning();
+
+        Creneau c1 = new Creneau();
+        c1.setId(1L);
+        c1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        c1.setFin(LocalDateTime.of(2024, 2, 12, 9, 30)); // 1h30 (90 mins)
+
+        Creneau c2 = new Creneau();
+        c2.setId(2L);
+        c2.setDebut(LocalDateTime.of(2024, 2, 12, 10, 0));
+        c2.setFin(LocalDateTime.of(2024, 2, 12, 11, 0)); // 1h (60 mins)
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Seance 1: TP on a 1.5h slot (matching) -> no penalty
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setType(Seance.TypeSeance.TP);
+        s1.setCreneau(c1);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+
+        // Seance 2: COURS on a 1.5h slot (mismatching) -> 1 penalty
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setType(Seance.TypeSeance.COURS);
+        s2.setCreneau(c1);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+
+        // Seance 3: TP on a 1h slot (mismatching) -> 1 penalty
+        Seance s3 = new Seance();
+        s3.setId(3L);
+        s3.setType(Seance.TypeSeance.TP);
+        s3.setCreneau(c2);
+        s3.setSalle(salle);
+        s3.setProfesseur(prof);
+
+        // Seance 4: COURS on a 1h slot (matching) -> no penalty
+        Seance s4 = new Seance();
+        s4.setId(4L);
+        s4.setType(Seance.TypeSeance.COURS);
+        s4.setCreneau(c2);
+        s4.setSalle(salle);
+        s4.setProfesseur(prof);
+
+        problem.getSeances().addAll(java.util.List.of(s1, s2, s3, s4));
+        problem.getCreneaux().addAll(java.util.List.of(c1, c2));
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::seanceTypeDurationMatch)
+                .givenSolution(problem)
+                .penalizesBy(2);
+    }
 }

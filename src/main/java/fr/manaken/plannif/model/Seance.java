@@ -14,7 +14,8 @@ import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 @PlanningEntity
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Seance {
-    
+
+    // @TODO Ajouter les toString sur les classe PlanningVariable pour savoir d'ou viennent les hard/Soft points
     
     @PlanningId
     @EqualsAndHashCode.Include
@@ -47,7 +48,6 @@ public class Seance {
     private TypeSeance type;
 
     public enum TypeSeance {
-        COURS, TP, EXAMEN
+        COURS, TP, EXAMEN, VIE_DE_CLASSE
     }
-
 }

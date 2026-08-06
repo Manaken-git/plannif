@@ -44,6 +44,7 @@ public class PlanningController {
     public Planning solve(@RequestBody Planning problem) {
         SolverFactory<Planning> solverFactory = getSolverFactory();
         Solver<Planning> solver = solverFactory.buildSolver();
+        planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
         Planning solution = solver.solve(problem);
 
@@ -65,6 +66,7 @@ public class PlanningController {
         Solver<Planning> solver = solverFactory.buildSolver();
 
         Planning problem = planningService.buildPlanning();
+        planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
         Planning solution = solver.solve(problem);
 
@@ -122,6 +124,7 @@ public class PlanningController {
         c1.setId(1L);
         c1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
         c1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+        c1.setSemaineType(SemaineType.SEMAINE_1);
 
         List<Creneau> creneaux = new ArrayList<>();
         creneaux.add(c1);
