@@ -66,4 +66,9 @@ public class Classe {
 
         return true;
     }
+
+    @Override
+    public String toString() {
+        return nom;
+    }
 }

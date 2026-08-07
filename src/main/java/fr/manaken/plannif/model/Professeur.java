@@ -41,4 +41,9 @@ public class Professeur {
     private java.util.List<ProfesseurDayOff> daysOff = new java.util.ArrayList<>();
 
     private Set<Matiere> matieres = new HashSet<>();
+
+    @Override
+    public String toString() {
+        return nom + (prenom != null ? " " + prenom : "");
+    }
 }

@@ -17,5 +17,13 @@ public class Creneau {
     private LocalDateTime debut;
     private LocalDateTime fin;
     private SemaineType semaineType;
+
+    @Override
+    public String toString() {
+        if (debut == null || fin == null) {
+            return "null";
+        }
+        return debut.getDayOfWeek() + " " + debut.toLocalTime() + "-" + fin.toLocalTime() + (semaineType != null ? " (" + semaineType + ")" : "");
+    }
 }
 

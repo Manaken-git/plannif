@@ -28,4 +28,9 @@ public class Salle {
     
     @JsonIgnore
     private Set<Seance> seances = new HashSet<>();
+
+    @Override
+    public String toString() {
+        return code;
+    }
 }
