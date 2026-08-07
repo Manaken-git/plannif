@@ -41,7 +41,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 subjectClassSpreading(factory),
                                 holidayConflict(factory),
                                 studentGroupWeekTypeMismatch(factory),
-                                vieDeClasseLastFridayMorning(factory),
+                                vieDeClasseTimingConstraint(factory),
                                 seanceTypeDurationMatch(factory)
                 };
         }
@@ -291,7 +291,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 .asConstraint("Student group week type mismatch");
         }
 
-        public Constraint vieDeClasseLastFridayMorning(ConstraintFactory factory) {
+        public Constraint vieDeClasseTimingConstraint(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
                                 .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE && seance.getCreneau() != null && seance.getClasse() != null)
                                 .join(ClassePresence.class,
@@ -301,15 +301,23 @@ public class PlanningConstraints implements ConstraintProvider {
                                                         if (date.isBefore(presence.getDateDebut()) || date.isAfter(presence.getDateFin())) {
                                                                 return false;
                                                         }
+                                                        java.time.LocalDate firstMonday = presence.getDateDebut();
+                                                        while (firstMonday.getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
+                                                                firstMonday = firstMonday.plusDays(1);
+                                                        }
                                                         java.time.LocalDate lastFriday = presence.getDateFin();
                                                         while (lastFriday.getDayOfWeek() != java.time.DayOfWeek.FRIDAY) {
                                                                 lastFriday = lastFriday.minusDays(1);
                                                         }
-                                                        boolean isLastFriday = date.equals(lastFriday);
-                                                        boolean isMorning = seance.getCreneau().getDebut().getHour() < 12;
-                                                        return !isLastFriday || !isMorning;
+                                                        boolean isMondaySlot = date.equals(firstMonday)
+                                                                        && seance.getCreneau().getDebut().toLocalTime().equals(java.time.LocalTime.of(9, 0))
+                                                                        && seance.getCreneau().getFin().toLocalTime().equals(java.time.LocalTime.of(10, 0));
+                                                        boolean isFridaySlot = date.equals(lastFriday)
+                                                                        && seance.getCreneau().getDebut().toLocalTime().equals(java.time.LocalTime.of(10, 0))
+                                                                        && seance.getCreneau().getFin().toLocalTime().equals(java.time.LocalTime.of(11, 0));
+                                                        return !isMondaySlot && !isFridaySlot;
                                                 }))
                                 .penalize(HardSoftScore.ONE_HARD)
-                                .asConstraint("Vie de classe must be on the last Friday morning of the presence period");
+                                .asConstraint("Vie de classe timing constraint");
         }
 }

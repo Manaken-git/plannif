@@ -437,7 +437,7 @@ class ConstraintVerifierTest {
     }
 
     @Test
-    void vieDeClasseLastFridayMorning() {
+    void vieDeClasseTimingConstraint() {
         Planning problem = new Planning();
         
         Classe classe = new Classe();
@@ -446,23 +446,38 @@ class ConstraintVerifierTest {
         ClassePresence presence = new ClassePresence();
         presence.setId(1L);
         presence.setClasse(classe);
-        presence.setDateDebut(LocalDate.of(2024, 2, 12));
-        presence.setDateFin(LocalDate.of(2024, 2, 25));
+        presence.setDateDebut(LocalDate.of(2024, 2, 12)); // 2024-02-12 is Monday
+        presence.setDateFin(LocalDate.of(2024, 2, 25)); // last Friday is 2024-02-23
 
-        Creneau c1 = new Creneau();
-        c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 2, 23, 9, 0));
-        c1.setFin(LocalDateTime.of(2024, 2, 23, 10, 0));
+        // Valid Monday slot: first Monday (2024-02-12) 9h-10h
+        Creneau c_monday_ok = new Creneau();
+        c_monday_ok.setId(1L);
+        c_monday_ok.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0));
+        c_monday_ok.setFin(LocalDateTime.of(2024, 2, 12, 10, 0));
 
-        Creneau c2 = new Creneau();
-        c2.setId(2L);
-        c2.setDebut(LocalDateTime.of(2024, 2, 23, 14, 0));
-        c2.setFin(LocalDateTime.of(2024, 2, 23, 15, 0));
+        // Valid Friday slot: last Friday (2024-02-23) 10h-11h
+        Creneau c_friday_ok = new Creneau();
+        c_friday_ok.setId(2L);
+        c_friday_ok.setDebut(LocalDateTime.of(2024, 2, 23, 10, 0));
+        c_friday_ok.setFin(LocalDateTime.of(2024, 2, 23, 11, 0));
 
-        Creneau c3 = new Creneau();
-        c3.setId(3L);
-        c3.setDebut(LocalDateTime.of(2024, 2, 16, 9, 0));
-        c3.setFin(LocalDateTime.of(2024, 2, 16, 10, 0));
+        // Invalid Monday slot (wrong time): first Monday 10h-11h
+        Creneau c_monday_wrong_time = new Creneau();
+        c_monday_wrong_time.setId(3L);
+        c_monday_wrong_time.setDebut(LocalDateTime.of(2024, 2, 12, 10, 0));
+        c_monday_wrong_time.setFin(LocalDateTime.of(2024, 2, 12, 11, 0));
+
+        // Invalid Friday slot (wrong time): last Friday 9h-10h
+        Creneau c_friday_wrong_time = new Creneau();
+        c_friday_wrong_time.setId(4L);
+        c_friday_wrong_time.setDebut(LocalDateTime.of(2024, 2, 23, 9, 0));
+        c_friday_wrong_time.setFin(LocalDateTime.of(2024, 2, 23, 10, 0));
+
+        // Invalid slot (wrong date): middle Friday (2024-02-16) 10h-11h
+        Creneau c_wrong_date = new Creneau();
+        c_wrong_date.setId(5L);
+        c_wrong_date.setDebut(LocalDateTime.of(2024, 2, 16, 10, 0));
+        c_wrong_date.setFin(LocalDateTime.of(2024, 2, 16, 11, 0));
 
         Salle salle = new Salle();
         salle.setId(1L);
@@ -470,40 +485,56 @@ class ConstraintVerifierTest {
         Professeur prof = new Professeur();
         prof.setId(1L);
 
-        Seance s1 = new Seance();
-        s1.setId(1L);
-        s1.setClasse(classe);
-        s1.setType(Seance.TypeSeance.VIE_DE_CLASSE);
-        s1.setCreneau(c1);
-        s1.setSalle(salle);
-        s1.setProfesseur(prof);
+        Seance s_monday_ok = new Seance();
+        s_monday_ok.setId(1L);
+        s_monday_ok.setClasse(classe);
+        s_monday_ok.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_monday_ok.setCreneau(c_monday_ok);
+        s_monday_ok.setSalle(salle);
+        s_monday_ok.setProfesseur(prof);
 
-        Seance s2 = new Seance();
-        s2.setId(2L);
-        s2.setClasse(classe);
-        s2.setType(Seance.TypeSeance.VIE_DE_CLASSE);
-        s2.setCreneau(c2);
-        s2.setSalle(salle);
-        s2.setProfesseur(prof);
+        Seance s_friday_ok = new Seance();
+        s_friday_ok.setId(2L);
+        s_friday_ok.setClasse(classe);
+        s_friday_ok.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_friday_ok.setCreneau(c_friday_ok);
+        s_friday_ok.setSalle(salle);
+        s_friday_ok.setProfesseur(prof);
 
-        Seance s3 = new Seance();
-        s3.setId(3L);
-        s3.setClasse(classe);
-        s3.setType(Seance.TypeSeance.VIE_DE_CLASSE);
-        s3.setCreneau(c3);
-        s3.setSalle(salle);
-        s3.setProfesseur(prof);
+        Seance s_monday_wrong_time = new Seance();
+        s_monday_wrong_time.setId(3L);
+        s_monday_wrong_time.setClasse(classe);
+        s_monday_wrong_time.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_monday_wrong_time.setCreneau(c_monday_wrong_time);
+        s_monday_wrong_time.setSalle(salle);
+        s_monday_wrong_time.setProfesseur(prof);
 
-        problem.getSeances().addAll(java.util.List.of(s1, s2, s3));
-        problem.getCreneaux().addAll(java.util.List.of(c1, c2, c3));
+        Seance s_friday_wrong_time = new Seance();
+        s_friday_wrong_time.setId(4L);
+        s_friday_wrong_time.setClasse(classe);
+        s_friday_wrong_time.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_friday_wrong_time.setCreneau(c_friday_wrong_time);
+        s_friday_wrong_time.setSalle(salle);
+        s_friday_wrong_time.setProfesseur(prof);
+
+        Seance s_wrong_date = new Seance();
+        s_wrong_date.setId(5L);
+        s_wrong_date.setClasse(classe);
+        s_wrong_date.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_wrong_date.setCreneau(c_wrong_date);
+        s_wrong_date.setSalle(salle);
+        s_wrong_date.setProfesseur(prof);
+
+        problem.getSeances().addAll(java.util.List.of(s_monday_ok, s_friday_ok, s_monday_wrong_time, s_friday_wrong_time, s_wrong_date));
+        problem.getCreneaux().addAll(java.util.List.of(c_monday_ok, c_friday_ok, c_monday_wrong_time, c_friday_wrong_time, c_wrong_date));
         problem.getSalles().add(salle);
         problem.getProfesseurs().add(prof);
         problem.getClasses().add(classe);
         problem.getClassePresences().add(presence);
 
-        constraintVerifier.verifyThat(PlanningConstraints::vieDeClasseLastFridayMorning)
+        constraintVerifier.verifyThat(PlanningConstraints::vieDeClasseTimingConstraint)
                 .givenSolution(problem)
-                .penalizesBy(2);
+                .penalizesBy(3);
     }
 
     @Test
