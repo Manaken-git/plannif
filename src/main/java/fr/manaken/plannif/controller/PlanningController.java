@@ -47,6 +47,7 @@ public class PlanningController {
         planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
         Planning solution = solver.solve(problem);
+        planningService.savePlanning(solution);
 
         // Explication du score dans la console
         var solutionManager = SolutionManager.create(solverFactory);
@@ -69,6 +70,7 @@ public class PlanningController {
         planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
         Planning solution = solver.solve(problem);
+        planningService.savePlanning(solution);
 
         // Explication du score dans la console
         var solutionManager = SolutionManager.create(solverFactory);

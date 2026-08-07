@@ -21,6 +21,10 @@ import java.util.List;
 @Setter
 public class Planning {
 
+    private Long id;
+    private String nom;
+    private java.time.LocalDateTime dateCreation;
+
     @PlanningEntityCollectionProperty
     private List<Seance> seances = new java.util.ArrayList<>();
 

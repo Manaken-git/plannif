@@ -13,6 +13,7 @@ import fr.manaken.plannif.client.data.mapper.SalleMapper;
 import fr.manaken.plannif.client.data.mapper.SeanceMapper;
 import fr.manaken.plannif.client.data.mapper.MatiereClasseConfigMapper;
 import fr.manaken.plannif.client.data.mapper.VacancesMapper;
+import fr.manaken.plannif.client.data.dto.PlanningDto;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -332,5 +333,27 @@ public class PlanningService {
             creneau.setSemaineType(semaineType);
             generated.add(creneau);
         }
+    }
+
+    public void savePlanning(Planning planning) {
+        if (planning.getNom() == null) {
+            planning.setNom("Planning généré le " + java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+        }
+        if (planning.getDateCreation() == null) {
+            planning.setDateCreation(java.time.LocalDateTime.now());
+        }
+
+        var seanceDtos = seanceMapper.toDtoList(planning.getSeances());
+        var creneauDtos = creneauMapper.toDtoList(planning.getCreneaux());
+        PlanningDto planningDto = PlanningDto.builder()
+                .id(planning.getId())
+                .nom(planning.getNom())
+                .dateCreation(planning.getDateCreation())
+                .seances(seanceDtos)
+                .creneaux(creneauDtos)
+                .build();
+
+        PlanningDto saved = plannifDataApiClient.savePlanning(planningDto);
+        planning.setId(saved.getId());
     }
 }
