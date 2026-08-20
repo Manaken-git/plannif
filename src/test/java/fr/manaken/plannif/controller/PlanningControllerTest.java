@@ -126,17 +126,17 @@ class PlanningControllerTest {
         planningService.generateCreneauxIfNeeded(planning);
 
         assertThat(planning.getCreneaux()).isNotEmpty();
-        // 5 days * (8 default 1h slots + 6 TP 1h30 slots) = 70 slots
-        assertThat(planning.getCreneaux()).hasSize(70);
+        // 5 days * (8 default 1h slots + 6 TP 1h30 slots) - skipped slots = 61 slots
+        assertThat(planning.getCreneaux()).hasSize(61);
 
         fr.manaken.plannif.model.Creneau first = planning.getCreneaux().get(0);
-        assertThat(first.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 12, 8, 0));
-        assertThat(first.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 12, 9, 0));
+        assertThat(first.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 12, 9, 0));
+        assertThat(first.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 12, 10, 0));
         assertThat(first.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
 
-        fr.manaken.plannif.model.Creneau last = planning.getCreneaux().get(69);
-        assertThat(last.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 16, 16, 0));
-        assertThat(last.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 16, 17, 30));
+        fr.manaken.plannif.model.Creneau last = planning.getCreneaux().get(60);
+        assertThat(last.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 16, 11, 0));
+        assertThat(last.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 16, 12, 30));
         assertThat(last.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
     }
 

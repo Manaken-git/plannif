@@ -3,6 +3,8 @@ package fr.manaken.plannif.service;
 import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.model.*;
 import org.springframework.beans.factory.annotation.Value;
+
+import java.time.DayOfWeek;
 import java.util.ArrayList;
 import fr.manaken.plannif.client.data.PlannifDataApiClient;
 import fr.manaken.plannif.client.data.mapper.ClasseMapper;
@@ -66,6 +68,55 @@ public class PlanningService {
         List<MatiereClasseConfig> matiereClasseConfigs = matiereClasseConfigMapper.toEntityList(plannifDataApiClient.getMatiereClasseConfigs());
         List<Seance> seances = seanceMapper.toEntityList(plannifDataApiClient.getSeances());
 
+        planning.setClasses(classes);
+        planning.setProfesseurs(professeurs);
+        planning.setMatieres(matieres);
+        planning.setSalles(salles);
+        planning.setMatiereClasseConfigs(matiereClasseConfigs);
+        planning.setSeances(seances);
+
+        List<ClassePresence> allPresences = new ArrayList<>();
+        for (Classe c : classes) {
+            if (c.getPresences() != null) {
+                for (ClassePresence cp : c.getPresences()) {
+                    cp.setClasse(c);
+                    allPresences.add(cp);
+                }
+            }
+        }
+        planning.setClassePresences(allPresences);
+
+        List<ProfesseurDayOff> allDaysOff = new ArrayList<>();
+        for (Professeur p : professeurs) {
+            if (p.getDaysOff() != null) {
+                for (ProfesseurDayOff pdo : p.getDaysOff()) {
+                    pdo.setProfesseur(p);
+                    allDaysOff.add(pdo);
+                }
+            }
+        }
+        planning.setProfesseurDayOffs(allDaysOff);
+
+        List<Vacances> vacances = new ArrayList<>();
+        try {
+            List<fr.manaken.plannif.client.data.dto.VacancesDto> vacancesDtos = plannifDataApiClient.getVacances();
+            if (vacancesDtos != null) {
+                vacances = vacancesMapper.toEntityList(vacancesDtos);
+            }
+        } catch (Exception e) {
+            // Log and default to empty
+        }
+        planning.setVacances(vacances);
+
+        // Generate creneaux in RAM if database creneaux list is empty/null
+        if (creneaux == null || creneaux.isEmpty()) {
+            planning.setCreneaux(new ArrayList<>());
+            generateCreneauxIfNeeded(planning);
+            creneaux = planning.getCreneaux();
+        } else {
+            planning.setCreneaux(creneaux);
+        }
+
         Map<Long, Classe> classeMap = classes.stream().collect(Collectors.toMap(Classe::getId, c -> c, (a, b) -> a));
         Map<Long, Professeur> profMap = professeurs.stream().collect(Collectors.toMap(Professeur::getId, p -> p, (a, b) -> a));
         Map<Long, Matiere> matiereMap = matieres.stream().collect(Collectors.toMap(Matiere::getId, m -> m, (a, b) -> a));
@@ -98,47 +149,6 @@ public class PlanningService {
                 config.setMatiere(matiereMap.get(config.getMatiere().getId()));
             }
         }
-
-        List<ClassePresence> allPresences = new ArrayList<>();
-        for (Classe c : classes) {
-            if (c.getPresences() != null) {
-                for (ClassePresence cp : c.getPresences()) {
-                    cp.setClasse(c);
-                    allPresences.add(cp);
-                }
-            }
-        }
-
-        List<ProfesseurDayOff> allDaysOff = new ArrayList<>();
-        for (Professeur p : professeurs) {
-            if (p.getDaysOff() != null) {
-                for (ProfesseurDayOff pdo : p.getDaysOff()) {
-                    pdo.setProfesseur(p);
-                    allDaysOff.add(pdo);
-                }
-            }
-        }
-
-        List<Vacances> vacances = new ArrayList<>();
-        try {
-            List<fr.manaken.plannif.client.data.dto.VacancesDto> vacancesDtos = plannifDataApiClient.getVacances();
-            if (vacancesDtos != null) {
-                vacances = vacancesMapper.toEntityList(vacancesDtos);
-            }
-        } catch (Exception e) {
-            // Log and default to empty
-        }
-
-        planning.setClasses(classes);
-        planning.setProfesseurs(professeurs);
-        planning.setMatieres(matieres);
-        planning.setSalles(salles);
-        planning.setCreneaux(creneaux);
-        planning.setMatiereClasseConfigs(matiereClasseConfigs);
-        planning.setSeances(seances);
-        planning.setClassePresences(allPresences);
-        planning.setProfesseurDayOffs(allDaysOff);
-        planning.setVacances(vacances);
 
         return planning;
     }
@@ -296,22 +306,30 @@ public class PlanningService {
                         SemaineType semaineType = SemaineType.fromIndex(weekIndex);
 
                         // Generate the default 1h slots
-                        addGeneratedCreneau(date, 8, 0, 9, 0, semaineType, uniqueKeys, generated);
+                        if (date.getDayOfWeek() != DayOfWeek.MONDAY) {
+                            addGeneratedCreneau(date, 8, 0, 9, 0, semaineType, uniqueKeys, generated);
+                        }
                         addGeneratedCreneau(date, 9, 0, 10, 0, semaineType, uniqueKeys, generated);
                         addGeneratedCreneau(date, 10, 0, 11, 0, semaineType, uniqueKeys, generated);
                         addGeneratedCreneau(date, 11, 0, 12, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 13, 0, 14, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 14, 0, 15, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 15, 0, 16, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 16, 0, 17, 0, semaineType, uniqueKeys, generated);
+                        if (date.getDayOfWeek() != DayOfWeek.FRIDAY) {
+                            addGeneratedCreneau(date, 13, 0, 14, 0, semaineType, uniqueKeys, generated);
+                            addGeneratedCreneau(date, 14, 0, 15, 0, semaineType, uniqueKeys, generated);
+                            addGeneratedCreneau(date, 15, 0, 16, 0, semaineType, uniqueKeys, generated);
+                            addGeneratedCreneau(date, 16, 0, 17, 0, semaineType, uniqueKeys, generated);
+                        }
 
                         // Generate the 1h30 slots for TP
-                        addGeneratedCreneau(date, 8, 0, 9, 30, semaineType, uniqueKeys, generated);
+                        if (date.getDayOfWeek() != DayOfWeek.MONDAY) {
+                            addGeneratedCreneau(date, 8, 0, 9, 30, semaineType, uniqueKeys, generated);
+                        }
                         addGeneratedCreneau(date, 9, 30, 11, 0, semaineType, uniqueKeys, generated);
                         addGeneratedCreneau(date, 11, 0, 12, 30, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 13, 0, 14, 30, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 14, 30, 16, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 16, 0, 17, 30, semaineType, uniqueKeys, generated);
+                        if (date.getDayOfWeek() != DayOfWeek.FRIDAY) {
+                            addGeneratedCreneau(date, 13, 0, 14, 30, semaineType, uniqueKeys, generated);
+                            addGeneratedCreneau(date, 14, 30, 16, 0, semaineType, uniqueKeys, generated);
+                            addGeneratedCreneau(date, 16, 0, 17, 30, semaineType, uniqueKeys, generated);
+                        }
                     }
                 }
             }
@@ -344,13 +362,12 @@ public class PlanningService {
         }
 
         var seanceDtos = seanceMapper.toDtoList(planning.getSeances());
-        var creneauDtos = creneauMapper.toDtoList(planning.getCreneaux());
         PlanningDto planningDto = PlanningDto.builder()
                 .id(planning.getId())
                 .nom(planning.getNom())
                 .dateCreation(planning.getDateCreation())
                 .seances(seanceDtos)
-                .creneaux(creneauDtos)
+                .creneaux(java.util.List.of())
                 .build();
 
         PlanningDto saved = plannifDataApiClient.savePlanning(planningDto);
