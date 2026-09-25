@@ -140,6 +140,45 @@ class PlanningControllerTest {
         assertThat(last.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
     }
 
+    @Test
+    void testGenerateVieDeClasseSeances() {
+        fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
+                null, null, null, null, null, null, null, null, null
+        );
+
+        Planning planning = new Planning();
+        planning.setSeances(new java.util.ArrayList<>());
+        planning.setMatieres(new java.util.ArrayList<>());
+        planning.setMatiereClasseConfigs(new java.util.ArrayList<>());
+
+        fr.manaken.plannif.model.Classe classe = new fr.manaken.plannif.model.Classe();
+        classe.setId(1L);
+        classe.setNom("Classe A");
+
+        fr.manaken.plannif.model.ClassePresence presence = new fr.manaken.plannif.model.ClassePresence();
+        presence.setId(1L);
+        presence.setClasse(classe);
+        presence.setDateDebut(LocalDate.of(2024, 2, 12)); // Monday
+        presence.setDateFin(LocalDate.of(2024, 2, 23));   // Friday
+        classe.setPresences(java.util.List.of(presence));
+
+        planning.setClasses(java.util.List.of(classe));
+        planning.setClassePresences(java.util.List.of(presence));
+
+        planningService.generateSeancesIfNeeded(planning);
+
+        // Expect 2 VIE_DE_CLASSE sessions generated for this class and presence period
+        java.util.List<Seance> vdcList = planning.getSeances().stream()
+                .filter(s -> s.getType() == Seance.TypeSeance.VIE_DE_CLASSE)
+                .collect(Collectors.toList());
+
+        assertThat(vdcList).hasSize(2);
+        assertThat(vdcList.get(0).getClasse()).isEqualTo(classe);
+        assertThat(vdcList.get(0).getMatiere().getNom()).isEqualTo("Vie de classe");
+        assertThat(vdcList.get(1).getClasse()).isEqualTo(classe);
+        assertThat(vdcList.get(1).getMatiere().getNom()).isEqualTo("Vie de classe");
+    }
+
     private Planning generateProblem(String fichier) {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())

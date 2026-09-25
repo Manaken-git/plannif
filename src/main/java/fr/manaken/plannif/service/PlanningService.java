@@ -204,60 +204,67 @@ public class PlanningService {
             planning.setSeances(generatedSeances);
         }
 
-        // Generate VIE_DE_CLASSE sessions if needed
+        generateVieDeClasseSeances(planning);
+    }
+
+    private void generateVieDeClasseSeances(Planning planning) {
+        if (planning.getClasses() == null || planning.getClassePresences() == null) {
+            return;
+        }
+
         List<Seance> existingVdc = planning.getSeances().stream()
                 .filter(s -> s.getType() == Seance.TypeSeance.VIE_DE_CLASSE)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        for (Classe classe : planning.getClasses()) {
-            // Associated existing seances for this class to evaluate needsVieDeClasse
-            List<Seance> classSeances = planning.getSeances().stream()
-                    .filter(s -> s.getClasse() != null && s.getClasse().getId().equals(classe.getId()))
-                    .collect(Collectors.toList());
-            classe.setSeances(new java.util.HashSet<>(classSeances));
+        Matiere vdcMatiere = getOrCreateVieDeClasseMatiere(planning);
 
-            if (classe.getPresences() != null) {
-                for (ClassePresence presence : classe.getPresences()) {
-                    if (classe.needsVieDeClasse(presence, planning.getVacances())) {
-                        // Check if we can find an existing VIE_DE_CLASSE session for this class and presence period
-                        // 1. First, check if there's one already assigned to a slot in this presence period
-                        boolean isAssignedToPeriod = existingVdc.stream()
-                                .anyMatch(s -> s.getClasse() != null
-                                        && s.getClasse().getId().equals(classe.getId())
-                                        && s.getCreneau() != null
-                                        && !s.getCreneau().getDebut().toLocalDate().isBefore(presence.getDateDebut())
-                                        && !s.getCreneau().getDebut().toLocalDate().isAfter(presence.getDateFin()));
+        for (ClassePresence presence : planning.getClassePresences()) {
+            Classe classe = presence.getClasse();
+            if (classe == null) {
+                continue;
+            }
 
-                        if (isAssignedToPeriod) {
-                            continue;
-                        }
+            // 1. Séance Lundi (09h00 - 10h00)
+            if (presence.getFirstMonday() != null) {
+                ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getFirstMonday(), 9, 10, vdcMatiere);
+            }
 
-                        // 2. Otherwise, check if there is an unassigned VIE_DE_CLASSE session for this class that we can use
-                        Seance unassignedVdc = existingVdc.stream()
-                                .filter(s -> s.getClasse() != null
-                                        && s.getClasse().getId().equals(classe.getId())
-                                        && s.getCreneau() == null)
-                                .findFirst()
-                                .orElse(null);
- 
-                        if (unassignedVdc != null) {
-                            if (unassignedVdc.getMatiere() == null) {
-                                unassignedVdc.setMatiere(getOrCreateVieDeClasseMatiere(planning));
-                            }
-                            // We consume this unassigned session for this period so it won't be matched to another period
-                            existingVdc.remove(unassignedVdc);
-                        } else {
-                            // No session exists, we must create a new one
-                            Seance vdc = new Seance();
-                            long newId = planning.getSeances().stream().mapToLong(Seance::getId).max().orElse(0L) + 1;
-                            vdc.setId(newId);
-                            vdc.setClasse(classe);
-                            vdc.setType(Seance.TypeSeance.VIE_DE_CLASSE);
-                            vdc.setMatiere(getOrCreateVieDeClasseMatiere(planning));
-                            planning.getSeances().add(vdc);
-                        }
-                    }
+            // 2. Séance Vendredi (10h00 - 11h00)
+            if (presence.getLastFriday() != null) {
+                ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getLastFriday(), 10, 11, vdcMatiere);
+            }
+        }
+    }
+
+    private void ensureVieDeClasseSeance(Planning planning, List<Seance> unassignedPool, Classe classe,
+                                         java.time.LocalDate targetDate, int startHour, int endHour, Matiere matiere) {
+        boolean alreadyAssigned = planning.getSeances().stream().anyMatch(s ->
+                s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        && s.getClasse() != null && s.getClasse().getId().equals(classe.getId())
+                        && s.getCreneau() != null
+                        && s.getCreneau().getDebut().toLocalDate().equals(targetDate)
+                        && s.getCreneau().getDebut().toLocalTime().equals(java.time.LocalTime.of(startHour, 0))
+                        && s.getCreneau().getFin().toLocalTime().equals(java.time.LocalTime.of(endHour, 0)));
+
+        if (!alreadyAssigned) {
+            Seance reusable = unassignedPool.stream()
+                    .filter(s -> s.getClasse() != null && s.getClasse().getId().equals(classe.getId()) && s.getCreneau() == null)
+                    .findFirst()
+                    .orElse(null);
+
+            if (reusable != null) {
+                if (reusable.getMatiere() == null) {
+                    reusable.setMatiere(matiere);
                 }
+                unassignedPool.remove(reusable);
+            } else {
+                long newId = planning.getSeances().stream().mapToLong(Seance::getId).max().orElse(0L) + 1;
+                Seance vdc = new Seance();
+                vdc.setId(newId);
+                vdc.setClasse(classe);
+                vdc.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+                vdc.setMatiere(matiere);
+                planning.getSeances().add(vdc);
             }
         }
     }
@@ -266,22 +273,17 @@ public class PlanningService {
         if (planning.getMatieres() == null) {
             planning.setMatieres(new ArrayList<>());
         }
-        Matiere vdcMatiere = planning.getMatieres().stream()
-                .filter(m -> m.getNom() != null && m.getNom().toLowerCase().contains("vie de classe"))
+        return planning.getMatieres().stream()
+                .filter(m -> m.getNom() != null && m.getNom().equalsIgnoreCase("Vie de classe"))
                 .findFirst()
-                .orElse(null);
-
-        if (vdcMatiere == null) {
-            vdcMatiere = new Matiere();
-            long nextMatiereId = planning.getMatieres().stream()
-                    .mapToLong(Matiere::getId)
-                    .max()
-                    .orElse(0L) + 1;
-            vdcMatiere.setId(nextMatiereId);
-            vdcMatiere.setNom("Vie de classe");
-            planning.getMatieres().add(vdcMatiere);
-        }
-        return vdcMatiere;
+                .orElseGet(() -> {
+                    long nextId = planning.getMatieres().stream().mapToLong(Matiere::getId).max().orElse(0L) + 1;
+                    Matiere m = new Matiere();
+                    m.setId(nextId);
+                    m.setNom("Vie de classe");
+                    planning.getMatieres().add(m);
+                    return m;
+                });
     }
 
     public void generateCreneauxIfNeeded(Planning planning) {
@@ -342,7 +344,7 @@ public class PlanningService {
                                      List<Creneau> generated) {
         java.time.LocalDateTime startDateTime = date.atTime(startH, startM);
         java.time.LocalDateTime endDateTime = date.atTime(endH, endM);
-        String key = date.toString() + "_" + startH + ":" + startM + "_" + endH + ":" + endM + "_" + semaineType.name();
+        String key = date + "_" + startH + ":" + startM + "_" + endH + ":" + endM + "_" + semaineType.name();
         if (uniqueKeys.add(key)) {
             Creneau creneau = new Creneau();
             creneau.setId((long) (generated.size() + 1));

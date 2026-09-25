@@ -538,6 +538,69 @@ class ConstraintVerifierTest {
     }
 
     @Test
+    void vieDeClasseTimingConstraint_MondayAndFridayTogether() {
+        Planning problem = new Planning();
+
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        ClassePresence presence = new ClassePresence();
+        presence.setId(1L);
+        presence.setClasse(classe);
+        presence.setDateDebut(LocalDate.of(2024, 2, 12)); // Monday
+        presence.setDateFin(LocalDate.of(2024, 2, 23));   // Friday
+
+        Creneau c_monday = new Creneau();
+        c_monday.setId(1L);
+        c_monday.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0));
+        c_monday.setFin(LocalDateTime.of(2024, 2, 12, 10, 0));
+
+        Creneau c_friday = new Creneau();
+        c_friday.setId(2L);
+        c_friday.setDebut(LocalDateTime.of(2024, 2, 23, 10, 0));
+        c_friday.setFin(LocalDateTime.of(2024, 2, 23, 11, 0));
+
+        Salle salle1 = new Salle();
+        salle1.setId(1L);
+
+        Salle salle2 = new Salle();
+        salle2.setId(2L);
+
+        Professeur prof1 = new Professeur();
+        prof1.setId(1L);
+
+        Professeur prof2 = new Professeur();
+        prof2.setId(2L);
+
+        Seance s_monday = new Seance();
+        s_monday.setId(1L);
+        s_monday.setClasse(classe);
+        s_monday.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_monday.setCreneau(c_monday);
+        s_monday.setSalle(salle1);
+        s_monday.setProfesseur(prof1);
+
+        Seance s_friday = new Seance();
+        s_friday.setId(2L);
+        s_friday.setClasse(classe);
+        s_friday.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+        s_friday.setCreneau(c_friday);
+        s_friday.setSalle(salle2);
+        s_friday.setProfesseur(prof2);
+
+        problem.getSeances().addAll(java.util.List.of(s_monday, s_friday));
+        problem.getCreneaux().addAll(java.util.List.of(c_monday, c_friday));
+        problem.getSalles().addAll(java.util.List.of(salle1, salle2));
+        problem.getProfesseurs().addAll(java.util.List.of(prof1, prof2));
+        problem.getClasses().add(classe);
+        problem.getClassePresences().add(presence);
+
+        constraintVerifier.verifyThat(PlanningConstraints::vieDeClasseTimingConstraint)
+                .givenSolution(problem)
+                .penalizesBy(0);
+    }
+
+    @Test
     void seanceTypeDurationMatch() {
         Planning problem = new Planning();
 

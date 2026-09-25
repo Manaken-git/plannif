@@ -25,24 +25,24 @@ public class PlanningConstraints implements ConstraintProvider {
         @Override
         public Constraint[] defineConstraints(@NonNull ConstraintFactory factory) {
                 return new Constraint[] {
-                                roomConflict(factory),
-                                teacherConflict(factory),
-                                studentGroupConflict(factory),
-                                teacherDayOff(factory),
-                                teacherMaxHoursPerDay(factory),
-                                teacherMaxHoursPerWeek(factory),
-                                teacherMaxHoursPerSession(factory),
-                                teacherClassMaxHoursConsecutive(factory),
-                                studentGroupPresence(factory),
-                                teacherMustBeQualified(factory),
-                                teacherMaxGap(factory),
-                                subjectClassPeriodConstraint(factory),
-                                subjectClassMaxSessionsPerDay(factory),
-                                subjectClassSpreading(factory),
-                                holidayConflict(factory),
-                                studentGroupWeekTypeMismatch(factory),
-                                vieDeClasseTimingConstraint(factory),
-                                seanceTypeDurationMatch(factory)
+                    roomConflict(factory),
+                    teacherConflict(factory),
+                    studentGroupConflict(factory),
+                    teacherDayOff(factory),
+                    teacherMaxHoursPerDay(factory),
+                    teacherMaxHoursPerWeek(factory),
+                    teacherMaxHoursPerSession(factory),
+                    teacherClassMaxHoursConsecutive(factory),
+                    studentGroupPresence(factory),
+                    teacherMustBeQualified(factory),
+                    vieDeClasseTimingConstraint(factory),
+                    teacherMaxGap(factory),
+                    subjectClassPeriodConstraint(factory),
+                    subjectClassMaxSessionsPerDay(factory),
+                    subjectClassSpreading(factory),
+                    holidayConflict(factory),
+                    studentGroupWeekTypeMismatch(factory),
+                    seanceTypeDurationMatch(factory)
                 };
         }
 
@@ -293,31 +293,10 @@ public class PlanningConstraints implements ConstraintProvider {
 
         public Constraint vieDeClasseTimingConstraint(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                    .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE && seance.getCreneau() != null && seance.getClasse() != null)
-                    .join(ClassePresence.class,
+                    .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE && seance.getCreneau() != null)
+                    .ifNotExists(ClassePresence.class,
                         equal(Seance::getClasse, ClassePresence::getClasse),
-                        filtering((seance, presence) -> {
-                            java.time.LocalDate date = seance.getCreneau().getDebut().toLocalDate();
-                            if (date.isBefore(presence.getDateDebut()) || date.isAfter(presence.getDateFin())) {
-                                return false;
-                            }
-                            java.time.LocalDate firstMonday = presence.getDateDebut();
-                            while (firstMonday.getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
-                                firstMonday = firstMonday.plusDays(1);
-                            }
-                            java.time.LocalDate lastFriday = presence.getDateFin();
-                            while (lastFriday.getDayOfWeek() != java.time.DayOfWeek.FRIDAY) {
-                                lastFriday = lastFriday.minusDays(1);
-                            }
-                            boolean isMondaySlot = date.equals(firstMonday)
-                                                    && seance.getCreneau().getDebut().toLocalTime().equals(java.time.LocalTime.of(9, 0))
-                                                    && seance.getCreneau().getFin().toLocalTime().equals(java.time.LocalTime.of(10, 0));
-
-                            boolean isFridaySlot = date.equals(lastFriday)
-                                                    && seance.getCreneau().getDebut().toLocalTime().equals(java.time.LocalTime.of(10, 0))
-                                                    && seance.getCreneau().getFin().toLocalTime().equals(java.time.LocalTime.of(11, 0));
-                            return !isMondaySlot && !isFridaySlot;
-                        }))
+                        filtering((seance, presence) -> presence.isValidVieDeClasse(seance.getCreneau())))
                     .penalize(HardSoftScore.ONE_HARD)
                     .asConstraint("Vie de classe timing constraint");
         }

@@ -34,37 +34,35 @@ public class Classe {
     private java.util.List<ClassePresence> presences = new java.util.ArrayList<>();
 
     public boolean needsVieDeClasse(ClassePresence presence, java.util.List<Vacances> allVacances) {
-        java.time.LocalDate lastFriday = presence.getDateFin();
-        while (lastFriday.getDayOfWeek() != java.time.DayOfWeek.FRIDAY) {
-            lastFriday = lastFriday.minusDays(1);
-        }
-        
-        if (lastFriday.isBefore(presence.getDateDebut())) {
-            return false;
-        }
+        return countVieDeClasseNeeded(presence) > 0;
+    }
 
-        java.time.LocalDate dateDebutPresence = presence.getDateDebut();
-        Vacances lastVacances = null;
-        for (Vacances v : allVacances) {
-            if (v.getDateFin().isBefore(dateDebutPresence)) {
-                if (lastVacances == null || v.getDateFin().isAfter(lastVacances.getDateFin())) {
-                    lastVacances = v;
-                }
+    public int countVieDeClasseNeeded(ClassePresence presence) {
+        if (presence == null) {
+            return 0;
+        }
+        int needed = 0;
+        if (presence.getFirstMonday() != null) {
+            boolean hasMonday = seances != null && seances.stream().anyMatch(s ->
+                    s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                            && s.getCreneau() != null
+                            && presence.isValidVieDeClasse(s.getCreneau())
+                            && s.getCreneau().getDebut().toLocalDate().equals(presence.getFirstMonday()));
+            if (!hasMonday) {
+                needed++;
             }
         }
-
-        java.time.LocalDate repriseDate = (lastVacances != null) ? lastVacances.getDateFin().plusDays(1) : dateDebutPresence;
-
-        for (Seance s : seances) {
-            if (s.getType() == Seance.TypeSeance.VIE_DE_CLASSE && s.getCreneau() != null) {
-                java.time.LocalDate dateSeance = s.getCreneau().getDebut().toLocalDate();
-                if (!dateSeance.isBefore(repriseDate) && !dateSeance.isAfter(lastFriday)) {
-                    return false;
-                }
+        if (presence.getLastFriday() != null) {
+            boolean hasFriday = seances != null && seances.stream().anyMatch(s ->
+                    s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                            && s.getCreneau() != null
+                            && presence.isValidVieDeClasse(s.getCreneau())
+                            && s.getCreneau().getDebut().toLocalDate().equals(presence.getLastFriday()));
+            if (!hasFriday) {
+                needed++;
             }
         }
-
-        return true;
+        return needed;
     }
 
     @Override

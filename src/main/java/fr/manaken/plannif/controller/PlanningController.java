@@ -8,6 +8,7 @@ import fr.manaken.plannif.business.Planning;
 import fr.manaken.plannif.business.PlanningConstraints;
 import fr.manaken.plannif.model.*;
 import fr.manaken.plannif.service.PlanningService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -21,17 +22,17 @@ import java.util.List;
 public class PlanningController {
 
     private final PlanningService planningService;
+    private final long solverSpentLimitSeconds;
 
-    public PlanningController(PlanningService planningService) {
+    public PlanningController(PlanningService planningService,
+                              @Value("${planning.solver.spent-limit-seconds:120}") long solverSpentLimitSeconds) {
         this.planningService = planningService;
+        this.solverSpentLimitSeconds = solverSpentLimitSeconds;
     }
 
     private SolverFactory<Planning> getSolverFactory() {
-        SolverConfig solverConfig = new SolverConfig()
-                .withSolutionClass(Planning.class)
-                .withEntityClasses(Seance.class)
-                .withConstraintProviderClass(PlanningConstraints.class)
-                .withTerminationSpentLimit(Duration.ofSeconds(30));
+        SolverConfig solverConfig = SolverConfig.createFromXmlResource("solverConfig.xml")
+                .withTerminationSpentLimit(Duration.ofSeconds(solverSpentLimitSeconds));
 
         return SolverFactory.create(solverConfig);
     }
@@ -62,8 +63,7 @@ public class PlanningController {
 
     @GetMapping("/solve")
     public Planning solve() {
-        SolverConfig solverConfig = SolverConfig.createFromXmlResource("solverConfig.xml");
-        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        SolverFactory<Planning> solverFactory = getSolverFactory();
         Solver<Planning> solver = solverFactory.buildSolver();
 
         Planning problem = planningService.buildPlanning();
@@ -85,8 +85,7 @@ public class PlanningController {
 
     @GetMapping("/solve-html")
     public String solveHtml() {
-        SolverConfig solverConfig = SolverConfig.createFromXmlResource("solverConfig.xml");
-        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        SolverFactory<Planning> solverFactory = getSolverFactory();
         Solver<Planning> solver = solverFactory.buildSolver();
 
         Planning problem = generateProblem();

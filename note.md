@@ -78,8 +78,8 @@ src/main/java/fr/manaken/plannif/
 ├── exporter/
 │   └── PlanningExporter.java             # Générateur de Dashboard HTML / diagramme de Gantt interactif
 ├── model/                                # Modèles du domaine
-│   ├── Classe.java                       # Classe scolaire, liste presences, méthode needsVieDeClasse
-│   ├── ClassePresence.java               # Période de présence obligatoire [dateDebut, dateFin]
+│   ├── Classe.java                       # Classe scolaire, liste presences, méthodes needsVieDeClasse et countVieDeClasseNeeded
+│   ├── ClassePresence.java               # Période de présence obligatoire [dateDebut, dateFin], calculs firstMonday/lastFriday et validation isValidVieDeClasse
 │   ├── Creneau.java                      # Créneau horaire [debut, fin, semaineType]
 │   ├── DistanceSalle.java                # Matrice des distances entre salles
 │   ├── Eleve.java                        # Élève rattaché à une Classe
@@ -138,7 +138,7 @@ Le solver évalue **18 contraintes** (10 Hard, 8 Soft) :
 | 6 | **Subject Class Period** | `subjectClassPeriodConstraint` | Si un module a une plage de dates définie dans `MatiereClasseConfig`, la séance doit être comprise entre `dateDebut` et `dateFin`. |
 | 7 | **Holiday Conflict** | `holidayConflict` | Aucune séance ne peut avoir lieu pendant une période de vacances (`Vacances`). |
 | 8 | **Student Group Week Type Mismatch** | `studentGroupWeekTypeMismatch` | La semaine type du créneau (`SEMAINE_1`, `SEMAINE_2`, `SEMAINE_3`) doit correspondre à l'index de semaine calculé depuis le début de présence de la classe. |
-| 9 | **Vie de Classe Timing** | `vieDeClasseTimingConstraint` | Une séance `VIE_DE_CLASSE` doit obligatoirement être placée soit le **premier lundi (09h00 - 10h00)**, soit le **dernier vendredi (10h00 - 11h00)** de la période de présence. |
+| 9 | **Vie de Classe Timing** | `vieDeClasseTimingConstraint` | Une séance `VIE_DE_CLASSE` doit obligatoirement être placée soit sur le **premier lundi (09h00 - 10h00)**, soit sur le **dernier vendredi (10h00 - 11h00)** de la période de présence (permettant le placement conjoint d'une séance le lundi ET d'une séance le vendredi). |
 | 10 | **Seance Type & Duration Match** | `seanceTypeDurationMatch` | Une séance de type `TP` doit durer exactement **90 minutes**, les autres types ne doivent pas durer 90 minutes (créneaux standard 1h). |
 
 ### 🟡 Contraintes Souples (Soft Constraints - 1 Soft point par violation)
@@ -178,18 +178,18 @@ Le solver évalue **18 contraintes** (10 Hard, 8 Soft) :
   - Calcule `count = round(volumeHorairePeriode / standardSessionDurationHours)`.
   - Instancie les `Seance` avec `classe` et `matiere` assignées, `professeur`, `salle` et `creneau` non initialisés (laissés au Solver).
 - Gestion des **Vie de Classe** :
-  - Appelle `classe.needsVieDeClasse(presence, vacances)`.
+  - Génère **2 séances `VIE_DE_CLASSE`** par période de présence de la classe : une séance pour le **lundi (09h00 - 10h00)** ET une séance pour le **vendredi (10h00 - 11h00)**.
   - Réutilise les séances `VIE_DE_CLASSE` non planifiées existantes ou crée de nouvelles séances avec la matière auto-générée `"Vie de classe"`.
 
 ---
 
 ## 7. 🧪 Suite de Tests & Qualité
 
-La suite comprend **35 tests unitaires et d'intégration** (tous au vert) :
-- `ConstraintVerifierTest` (12 tests) : Teste isolément chaque contrainte Timefold via `ConstraintVerifier`.
+La suite comprend **37 tests unitaires et d'intégration** (tous au vert) :
+- `ConstraintVerifierTest` (13 tests) : Teste isolément chaque contrainte Timefold via `ConstraintVerifier`.
 - `AdvancedSolverTest` (4 tests) : Validation du calcul de score et détection des conflits (salle, prof, présence classe).
 - `SolverTest` (1 test) : Test d'intégration de résolution complète avec assertion sur la faisabilité (`isFeasible() == true`).
-- `PlanningControllerTest` (3 tests) : Test de l'orchestration globale, chargement de scénarios JSON (`test_big_data_scenario.json`), génération dynamique et export Gantt HTML.
+- `PlanningControllerTest` (4 tests) : Test de l'orchestration globale, chargement de scénarios JSON (`test_big_data_scenario.json`), génération dynamique (créneaux + séances Vie de classe) et export Gantt HTML.
 - `PlannifDataApiClientTest` (8 tests) : Validation des appels HTTP avec MockRestServiceServer.
 - `MappersTest` (6 tests) : Validation des mappers MapStruct.
 - `PlannifApplicationTests` (1 test) : Chargement du contexte Spring Boot.
@@ -204,8 +204,8 @@ La suite comprend **35 tests unitaires et d'intégration** (tous au vert) :
    - `PlageHoraire` / `plageHorairePreferee` : Le souhait horaire du professeur n'est pas encore évalué dans les contraintes soft.
    - `Eleve` : Présent dans le modèle mais les affectations se font actuellement au niveau `Classe`.
 
-2. **Performance & Terminaison Timefold** :
-   - `solverConfig.xml` définit une limite de 120s (`secondsSpentLimit`), tandis que `PlanningController` surcharge programmatiquement avec `withTerminationSpentLimit(Duration.ofSeconds(30))`. Une harmonisation via configuration centralisée `application.yml` est recommandée.
+2. **Performance & Terminaison Timefold (Résolu)** :
+   - La durée maximale d'exécution du solver est désormais centralisée dans `application.yml` (`planning.solver.spent-limit-seconds: 120`), injectée dans `PlanningController` et harmonisée avec `solverConfig.xml`.
 
 3. **Gestion des exceptions dans l'API Client** :
    - Dans `PlanningService.buildPlanning()`, la récupération des vacances capture génériquement `Exception` sans logging structuré.

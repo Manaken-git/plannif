@@ -12,5 +12,7 @@ plannif-data:
 planning:
   teaching-weeks: 36
   standard-session-duration-hours: 2.0
+  solver:
+    spent-limit-seconds: 120
 
 
