@@ -173,6 +173,39 @@ class PlanningControllerTest {
         assertThat(vdcList.get(1).getMatiere().getNom()).isEqualTo("Vie de classe");
     }
 
+    @Test
+    void testSavePlanningPropagatesFin() {
+        fr.manaken.plannif.client.data.PlannifDataApiClient mockClient = org.mockito.Mockito.mock(fr.manaken.plannif.client.data.PlannifDataApiClient.class);
+        fr.manaken.plannif.client.data.mapper.SeanceMapper seanceMapper = org.mapstruct.factory.Mappers.getMapper(fr.manaken.plannif.client.data.mapper.SeanceMapper.class);
+
+        fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
+                mockClient, null, null, null, null, seanceMapper, null, null
+        );
+
+        Planning planning = new Planning();
+        Seance seanceCours = new Seance();
+        seanceCours.setId(1L);
+        seanceCours.setType(Seance.TypeSeance.COURS);
+        seanceCours.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0));
+
+        Seance seanceTp = new Seance();
+        seanceTp.setId(2L);
+        seanceTp.setType(Seance.TypeSeance.TP);
+        seanceTp.setDebut(LocalDateTime.of(2024, 2, 12, 14, 0));
+
+        planning.setSeances(java.util.List.of(seanceCours, seanceTp));
+
+        org.mockito.ArgumentCaptor<fr.manaken.plannif.client.data.dto.PlanningDto> captor = org.mockito.ArgumentCaptor.forClass(fr.manaken.plannif.client.data.dto.PlanningDto.class);
+        org.mockito.Mockito.when(mockClient.savePlanning(captor.capture())).thenReturn(fr.manaken.plannif.client.data.dto.PlanningDto.builder().id(42L).build());
+
+        planningService.savePlanning(planning);
+
+        fr.manaken.plannif.client.data.dto.PlanningDto saved = captor.getValue();
+        assertThat(saved.getSeances()).hasSize(2);
+        assertThat(saved.getSeances().get(0).getFin()).isEqualTo(LocalDateTime.of(2024, 2, 12, 10, 0));
+        assertThat(saved.getSeances().get(1).getFin()).isEqualTo(LocalDateTime.of(2024, 2, 12, 15, 30));
+    }
+
     private Planning generateProblem(String fichier) {
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper()
                 .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())

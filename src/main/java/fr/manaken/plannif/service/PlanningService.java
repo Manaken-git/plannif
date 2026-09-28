@@ -372,6 +372,14 @@ public class PlanningService {
             planning.setDateCreation(java.time.LocalDateTime.now());
         }
 
+        if (planning.getSeances() != null) {
+            for (Seance s : planning.getSeances()) {
+                if (s.getDebut() != null) {
+                    s.setFin(s.getFin());
+                }
+            }
+        }
+
         var seanceDtos = seanceMapper.toDtoList(planning.getSeances());
         PlanningDto planningDto = PlanningDto.builder()
                 .id(planning.getId())

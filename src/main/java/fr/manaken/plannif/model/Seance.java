@@ -67,6 +67,17 @@ public class Seance {
         }
     }
 
+    public java.time.LocalDateTime getFin() {
+        if (this.debut == null) {
+            return null;
+        }
+        if (this.fin != null && this.dureeMinutes != null
+                && java.time.temporal.ChronoUnit.MINUTES.between(this.debut, this.fin) == this.dureeMinutes) {
+            return this.fin;
+        }
+        return this.debut.plusMinutes(getDureeMinutes());
+    }
+
     public void setFin(java.time.LocalDateTime fin) {
         this.fin = fin;
         if (this.debut != null && fin != null) {

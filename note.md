@@ -185,11 +185,11 @@ Le solver évalue **17 contraintes** (9 Hard, 8 Soft) :
 
 ## 7. 🧪 Suite de Tests & Qualité
 
-La suite comprend **38 tests unitaires et d'intégration** (tous au vert) :
+La suite comprend **39 tests unitaires et d'intégration** (tous au vert) :
 - `ConstraintVerifierTest` (14 tests) : Teste isolément chaque contrainte Timefold via `ConstraintVerifier`.
 - `AdvancedSolverTest` (4 tests) : Validation du calcul de score et détection des conflits (salle, prof, présence classe).
 - `SolverTest` (1 test) : Test d'intégration de résolution complète avec assertion sur la faisabilité (`isFeasible() == true`).
-- `PlanningControllerTest` (4 tests) : Test de l'orchestration globale, chargement de scénarios JSON (`test_big_data_scenario.json`), génération dynamique des dates et séances Vie de classe, et export Gantt HTML.
+- `PlanningControllerTest` (5 tests) : Test de l'orchestration globale, chargement de scénarios JSON, génération dynamique, persistance et propagation de la date/heure de fin (`fin`), et export Gantt HTML.
 - `PlannifDataApiClientTest` (8 tests) : Validation des appels HTTP avec MockRestServiceServer.
 - `MappersTest` (6 tests) : Validation des mappers MapStruct (dont mapping direct de `debut` et `fin` dans `SeanceDto`).
 - `PlannifApplicationTests` (1 test) : Chargement du contexte Spring Boot.
