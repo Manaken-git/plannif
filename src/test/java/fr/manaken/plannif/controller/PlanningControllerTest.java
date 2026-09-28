@@ -111,11 +111,10 @@ class PlanningControllerTest {
     @Test
     void testGenerateCreneaux() {
         fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
-                null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
         );
 
         Planning planning = new Planning();
-        planning.setCreneaux(new java.util.ArrayList<>());
 
         fr.manaken.plannif.model.ClassePresence presence = new fr.manaken.plannif.model.ClassePresence();
         presence.setId(1L);
@@ -123,27 +122,22 @@ class PlanningControllerTest {
         presence.setDateFin(LocalDate.of(2024, 2, 16));   // Friday
         planning.setClassePresences(java.util.List.of(presence));
 
-        planningService.generateCreneauxIfNeeded(planning);
+        planningService.generateDatesDebutPossiblesIfNeeded(planning);
 
-        assertThat(planning.getCreneaux()).isNotEmpty();
-        // 5 days * (8 default 1h slots + 6 TP 1h30 slots) - skipped slots = 61 slots
-        assertThat(planning.getCreneaux()).hasSize(61);
+        assertThat(planning.getDatesDebutPossibles()).isNotEmpty();
+        assertThat(planning.getDatesDebutPossibles()).hasSize(44);
 
-        fr.manaken.plannif.model.Creneau first = planning.getCreneaux().get(0);
-        assertThat(first.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 12, 9, 0));
-        assertThat(first.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 12, 10, 0));
-        assertThat(first.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
+        LocalDateTime first = planning.getDatesDebutPossibles().get(0);
+        assertThat(first).isEqualTo(LocalDateTime.of(2024, 2, 12, 9, 0));
 
-        fr.manaken.plannif.model.Creneau last = planning.getCreneaux().get(60);
-        assertThat(last.getDebut()).isEqualTo(LocalDateTime.of(2024, 2, 16, 11, 0));
-        assertThat(last.getFin()).isEqualTo(LocalDateTime.of(2024, 2, 16, 12, 30));
-        assertThat(last.getSemaineType()).isEqualTo(fr.manaken.plannif.model.SemaineType.SEMAINE_1);
+        LocalDateTime last = planning.getDatesDebutPossibles().get(planning.getDatesDebutPossibles().size() - 1);
+        assertThat(last).isEqualTo(LocalDateTime.of(2024, 2, 16, 11, 0));
     }
 
     @Test
     void testGenerateVieDeClasseSeances() {
         fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
-                null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
         );
 
         Planning planning = new Planning();
@@ -277,21 +271,6 @@ class PlanningControllerTest {
                         Long matiereId = cn.get("matiere_id").asLong();
                         config.setMatiere(matiereMap.get(matiereId));
                         planning.getMatiereClasseConfigs().add(config);
-                    }
-                }
-            }
-
-            // Populate semaineType on creneaux based on presence periods for backward compatibility in tests
-            for (fr.manaken.plannif.model.Creneau c : planning.getCreneaux()) {
-                if (c.getSemaineType() == null) {
-                    for (fr.manaken.plannif.model.ClassePresence cp : planning.getClassePresences()) {
-                        java.time.LocalDate d = c.getDebut().toLocalDate();
-                        if (!d.isBefore(cp.getDateDebut()) && !d.isAfter(cp.getDateFin())) {
-                            long days = java.time.temporal.ChronoUnit.DAYS.between(cp.getDateDebut(), d);
-                            int weekIndex = (int) (days / 7) + 1;
-                            c.setSemaineType(fr.manaken.plannif.model.SemaineType.fromIndex(weekIndex));
-                            break;
-                        }
                     }
                 }
             }

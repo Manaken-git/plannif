@@ -5,10 +5,12 @@ import fr.manaken.plannif.model.*;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import fr.manaken.plannif.client.data.PlannifDataApiClient;
 import fr.manaken.plannif.client.data.mapper.ClasseMapper;
-import fr.manaken.plannif.client.data.mapper.CreneauMapper;
 import fr.manaken.plannif.client.data.mapper.MatiereMapper;
 import fr.manaken.plannif.client.data.mapper.ProfesseurMapper;
 import fr.manaken.plannif.client.data.mapper.SalleMapper;
@@ -16,10 +18,14 @@ import fr.manaken.plannif.client.data.mapper.SeanceMapper;
 import fr.manaken.plannif.client.data.mapper.MatiereClasseConfigMapper;
 import fr.manaken.plannif.client.data.mapper.VacancesMapper;
 import fr.manaken.plannif.client.data.dto.PlanningDto;
+import fr.manaken.plannif.client.data.dto.CreneauDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +36,6 @@ public class PlanningService {
 
     private final PlannifDataApiClient plannifDataApiClient;
     private final ClasseMapper classeMapper;
-    private final CreneauMapper creneauMapper;
     private final MatiereMapper matiereMapper;
     private final ProfesseurMapper professeurMapper;
     private final SalleMapper salleMapper;
@@ -40,7 +45,6 @@ public class PlanningService {
 
     public PlanningService(PlannifDataApiClient plannifDataApiClient,
                            ClasseMapper classeMapper,
-                           CreneauMapper creneauMapper,
                            MatiereMapper matiereMapper,
                            ProfesseurMapper professeurMapper,
                            SalleMapper salleMapper,
@@ -49,7 +53,6 @@ public class PlanningService {
                            VacancesMapper vacancesMapper) {
         this.plannifDataApiClient = plannifDataApiClient;
         this.classeMapper = classeMapper;
-        this.creneauMapper = creneauMapper;
         this.matiereMapper = matiereMapper;
         this.professeurMapper = professeurMapper;
         this.salleMapper = salleMapper;
@@ -64,7 +67,6 @@ public class PlanningService {
         List<Professeur> professeurs = professeurMapper.toEntityList(plannifDataApiClient.getProfesseurs());
         List<Matiere> matieres = matiereMapper.toEntityList(plannifDataApiClient.getMatieres());
         List<Salle> salles = salleMapper.toEntityList(plannifDataApiClient.getSalles());
-        List<Creneau> creneaux = creneauMapper.toEntityList(plannifDataApiClient.getCreneaux());
         List<MatiereClasseConfig> matiereClasseConfigs = matiereClasseConfigMapper.toEntityList(plannifDataApiClient.getMatiereClasseConfigs());
         List<Seance> seances = seanceMapper.toEntityList(plannifDataApiClient.getSeances());
 
@@ -108,20 +110,31 @@ public class PlanningService {
         }
         planning.setVacances(vacances);
 
-        // Generate creneaux in RAM if database creneaux list is empty/null
-        if (creneaux == null || creneaux.isEmpty()) {
-            planning.setCreneaux(new ArrayList<>());
-            generateCreneauxIfNeeded(planning);
-            creneaux = planning.getCreneaux();
-        } else {
-            planning.setCreneaux(creneaux);
+        // Fetch candidate dates from plannifDataApiClient creneaux if any exist, otherwise generate
+        try {
+            List<CreneauDTO> creneauDtos = plannifDataApiClient.getCreneaux();
+            if (creneauDtos != null && !creneauDtos.isEmpty()) {
+                List<LocalDateTime> dates = creneauDtos.stream()
+                        .map(CreneauDTO::debut)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .sorted()
+                        .collect(Collectors.toList());
+                planning.setDatesDebutPossibles(dates);
+            }
+        } catch (Exception ignored) {
         }
+
+        if (planning.getDatesDebutPossibles() == null || planning.getDatesDebutPossibles().isEmpty()) {
+            generateDatesDebutPossiblesIfNeeded(planning);
+        }
+
+        linkPresenceContext(planning);
 
         Map<Long, Classe> classeMap = classes.stream().collect(Collectors.toMap(Classe::getId, c -> c, (a, b) -> a));
         Map<Long, Professeur> profMap = professeurs.stream().collect(Collectors.toMap(Professeur::getId, p -> p, (a, b) -> a));
         Map<Long, Matiere> matiereMap = matieres.stream().collect(Collectors.toMap(Matiere::getId, m -> m, (a, b) -> a));
         Map<Long, Salle> salleMap = salles.stream().collect(Collectors.toMap(Salle::getId, s -> s, (a, b) -> a));
-        Map<Long, Creneau> creneauMap = creneaux.stream().collect(Collectors.toMap(Creneau::getId, c -> c, (a, b) -> a));
 
         for (Seance s : seances) {
             if (s.getClasse() != null && s.getClasse().getId() != null) {
@@ -135,9 +148,6 @@ public class PlanningService {
             }
             if (s.getSalle() != null && s.getSalle().getId() != null) {
                 s.setSalle(salleMap.get(s.getSalle().getId()));
-            }
-            if (s.getCreneau() != null && s.getCreneau().getId() != null) {
-                s.setCreneau(creneauMap.get(s.getCreneau().getId()));
             }
         }
 
@@ -154,6 +164,7 @@ public class PlanningService {
     }
 
     public void generateSeancesIfNeeded(Planning planning) {
+        linkPresenceContext(planning);
         if (planning.getSeances() == null) {
             planning.setSeances(new ArrayList<>());
         }
@@ -224,31 +235,32 @@ public class PlanningService {
                 continue;
             }
 
-            // 1. Séance Lundi (09h00 - 10h00)
-            if (presence.getFirstMonday() != null) {
-                ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getFirstMonday(), 9, 10, vdcMatiere);
+            // 1. Séance Premier jour (09h00 - 10h00)
+            if (presence.getFirstDay() != null) {
+                ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getFirstDay(), 9, 10, vdcMatiere);
             }
 
-            // 2. Séance Vendredi (10h00 - 11h00)
-            if (presence.getLastFriday() != null) {
-                ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getLastFriday(), 10, 11, vdcMatiere);
+            // 2. Séance Dernier jour (10h00 - 11h00)
+            if (presence.getLastDay() != null) {
+                ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getLastDay(), 10, 11, vdcMatiere);
             }
         }
     }
 
     private void ensureVieDeClasseSeance(Planning planning, List<Seance> unassignedPool, Classe classe,
                                          java.time.LocalDate targetDate, int startHour, int endHour, Matiere matiere) {
+        LocalDateTime expectedStart = targetDate.atTime(startHour, 0);
+        LocalDateTime expectedEnd = targetDate.atTime(endHour, 0);
+
         boolean alreadyAssigned = planning.getSeances().stream().anyMatch(s ->
                 s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
                         && s.getClasse() != null && s.getClasse().getId().equals(classe.getId())
-                        && s.getCreneau() != null
-                        && s.getCreneau().getDebut().toLocalDate().equals(targetDate)
-                        && s.getCreneau().getDebut().toLocalTime().equals(java.time.LocalTime.of(startHour, 0))
-                        && s.getCreneau().getFin().toLocalTime().equals(java.time.LocalTime.of(endHour, 0)));
+                        && expectedStart.equals(s.getDebut())
+                        && expectedEnd.equals(s.getFin()));
 
         if (!alreadyAssigned) {
             Seance reusable = unassignedPool.stream()
-                    .filter(s -> s.getClasse() != null && s.getClasse().getId().equals(classe.getId()) && s.getCreneau() == null)
+                    .filter(s -> s.getClasse() != null && s.getClasse().getId().equals(classe.getId()) && s.getDebut() == null)
                     .findFirst()
                     .orElse(null);
 
@@ -286,73 +298,70 @@ public class PlanningService {
                 });
     }
 
-    public void generateCreneauxIfNeeded(Planning planning) {
-        if (planning.getCreneaux() == null || planning.getCreneaux().isEmpty()) {
-            List<Creneau> generated = new ArrayList<>();
-            java.util.Set<String> uniqueKeys = new java.util.HashSet<>();
+    public void linkPresenceContext(Planning planning) {
+        if (planning != null && planning.getClassePresences() != null) {
+            for (ClassePresence cp : planning.getClassePresences()) {
+                if (planning.getVacances() != null) {
+                    cp.setVacances(planning.getVacances());
+                }
+                if (planning.getDatesDebutPossibles() != null) {
+                    cp.setAvailableDatesDebut(planning.getDatesDebutPossibles());
+                }
+            }
+        }
+    }
+
+    public void generateDatesDebutPossiblesIfNeeded(Planning planning) {
+        if (planning.getDatesDebutPossibles() == null || planning.getDatesDebutPossibles().isEmpty()) {
+            Set<LocalDateTime> generated = new TreeSet<>();
 
             if (planning.getClassePresences() != null) {
                 for (ClassePresence presence : planning.getClassePresences()) {
-                    java.time.LocalDate start = presence.getDateDebut();
-                    java.time.LocalDate end = presence.getDateFin();
+                    LocalDate start = presence.getDateDebut();
+                    LocalDate end = presence.getDateFin();
                     if (start == null || end == null) {
                         continue;
                     }
-                    for (java.time.LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
-                        if (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+                    for (LocalDate date = start; !date.isAfter(end); date = date.plusDays(1)) {
+                        if (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
                             continue;
                         }
 
-                        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(presence.getDateDebut(), date);
-                        int weekIndex = (int) (daysBetween / 7) + 1;
-                        SemaineType semaineType = SemaineType.fromIndex(weekIndex);
-
-                        // Generate the default 1h slots
+                        // 1h slots start times:
+                        // 8h (except Monday)
                         if (date.getDayOfWeek() != DayOfWeek.MONDAY) {
-                            addGeneratedCreneau(date, 8, 0, 9, 0, semaineType, uniqueKeys, generated);
+                            generated.add(date.atTime(8, 0));
                         }
-                        addGeneratedCreneau(date, 9, 0, 10, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 10, 0, 11, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 11, 0, 12, 0, semaineType, uniqueKeys, generated);
+                        // 9h, 10h, 11h
+                        generated.add(date.atTime(9, 0));
+                        generated.add(date.atTime(10, 0));
+                        generated.add(date.atTime(11, 0));
+                        // Afternoon slots (except Friday)
                         if (date.getDayOfWeek() != DayOfWeek.FRIDAY) {
-                            addGeneratedCreneau(date, 13, 0, 14, 0, semaineType, uniqueKeys, generated);
-                            addGeneratedCreneau(date, 14, 0, 15, 0, semaineType, uniqueKeys, generated);
-                            addGeneratedCreneau(date, 15, 0, 16, 0, semaineType, uniqueKeys, generated);
-                            addGeneratedCreneau(date, 16, 0, 17, 0, semaineType, uniqueKeys, generated);
+                            generated.add(date.atTime(13, 0));
+                            generated.add(date.atTime(14, 0));
+                            generated.add(date.atTime(15, 0));
+                            generated.add(date.atTime(16, 0));
                         }
 
-                        // Generate the 1h30 slots for TP
-                        if (date.getDayOfWeek() != DayOfWeek.MONDAY) {
-                            addGeneratedCreneau(date, 8, 0, 9, 30, semaineType, uniqueKeys, generated);
-                        }
-                        addGeneratedCreneau(date, 9, 30, 11, 0, semaineType, uniqueKeys, generated);
-                        addGeneratedCreneau(date, 11, 0, 12, 30, semaineType, uniqueKeys, generated);
+                        // 1h30 TP slots start times:
+                        // 8h (except Monday) - already added above
+                        generated.add(date.atTime(9, 30));
+                        // 11h - already added above
                         if (date.getDayOfWeek() != DayOfWeek.FRIDAY) {
-                            addGeneratedCreneau(date, 13, 0, 14, 30, semaineType, uniqueKeys, generated);
-                            addGeneratedCreneau(date, 14, 30, 16, 0, semaineType, uniqueKeys, generated);
-                            addGeneratedCreneau(date, 16, 0, 17, 30, semaineType, uniqueKeys, generated);
+                            // 13h - already added above
+                            generated.add(date.atTime(14, 30));
+                            // 16h - already added above
                         }
                     }
                 }
             }
-            planning.setCreneaux(generated);
+            planning.setDatesDebutPossibles(new ArrayList<>(generated));
         }
     }
 
-    private void addGeneratedCreneau(java.time.LocalDate date, int startH, int startM, int endH, int endM, 
-                                     SemaineType semaineType, java.util.Set<String> uniqueKeys, 
-                                     List<Creneau> generated) {
-        java.time.LocalDateTime startDateTime = date.atTime(startH, startM);
-        java.time.LocalDateTime endDateTime = date.atTime(endH, endM);
-        String key = date + "_" + startH + ":" + startM + "_" + endH + ":" + endM + "_" + semaineType.name();
-        if (uniqueKeys.add(key)) {
-            Creneau creneau = new Creneau();
-            creneau.setId((long) (generated.size() + 1));
-            creneau.setDebut(startDateTime);
-            creneau.setFin(endDateTime);
-            creneau.setSemaineType(semaineType);
-            generated.add(creneau);
-        }
+    public void generateCreneauxIfNeeded(Planning planning) {
+        generateDatesDebutPossiblesIfNeeded(planning);
     }
 
     public void savePlanning(Planning planning) {
@@ -369,7 +378,7 @@ public class PlanningService {
                 .nom(planning.getNom())
                 .dateCreation(planning.getDateCreation())
                 .seances(seanceDtos)
-                .creneaux(java.util.List.of())
+                .creneaux(List.of())
                 .build();
 
         PlanningDto saved = plannifDataApiClient.savePlanning(planningDto);

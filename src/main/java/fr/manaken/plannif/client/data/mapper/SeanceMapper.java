@@ -14,14 +14,12 @@ public interface SeanceMapper {
     @Mapping(source = "classe.id", target = "classeId")
     @Mapping(source = "matiere.id", target = "matiereId")
     @Mapping(source = "salle.id", target = "salleId")
-    @Mapping(source = "creneau.id", target = "creneauId")
     SeanceDto toDto(Seance entity);
 
     @Mapping(source = "professeurId", target = "professeur.id")
     @Mapping(source = "classeId", target = "classe.id")
     @Mapping(source = "matiereId", target = "matiere.id")
     @Mapping(source = "salleId", target = "salle.id")
-    @Mapping(source = "creneauId", target = "creneau.id")
     Seance toEntity(SeanceDto dto);
 
     List<SeanceDto> toDtoList(List<Seance> entities);

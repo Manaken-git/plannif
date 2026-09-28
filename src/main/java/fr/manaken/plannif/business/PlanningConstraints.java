@@ -41,18 +41,17 @@ public class PlanningConstraints implements ConstraintProvider {
                     subjectClassMaxSessionsPerDay(factory),
                     subjectClassSpreading(factory),
                     holidayConflict(factory),
-                    studentGroupWeekTypeMismatch(factory),
                     seanceTypeDurationMatch(factory)
                 };
         }
 
         public Constraint seanceTypeDurationMatch(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getCreneau() != null)
+                                .filter(seance -> seance.getDebut() != null && seance.getFin() != null)
                                 .filter(seance -> {
                                         long minutes = java.time.temporal.ChronoUnit.MINUTES.between(
-                                                        seance.getCreneau().getDebut(),
-                                                        seance.getCreneau().getFin());
+                                                        seance.getDebut(),
+                                                        seance.getFin());
                                         if (seance.getType() == fr.manaken.plannif.model.Seance.TypeSeance.TP) {
                                                 return minutes != 90;
                                         } else {
@@ -65,10 +64,10 @@ public class PlanningConstraints implements ConstraintProvider {
 
         private Constraint holidayConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getCreneau() != null)
+                                .filter(seance -> seance.getDebut() != null)
                                 .join(fr.manaken.plannif.model.Vacances.class,
                                                 filtering((seance, vacance) -> {
-                                                        java.time.LocalDate date = seance.getCreneau().getDebut().toLocalDate();
+                                                        java.time.LocalDate date = seance.getDebut().toLocalDate();
                                                         return !date.isBefore(vacance.getDateDebut()) && !date.isAfter(vacance.getDateFin());
                                                 }))
                                 .penalize(HardSoftScore.ONE_HARD)
@@ -81,8 +80,8 @@ public class PlanningConstraints implements ConstraintProvider {
                                 Joiners.equal(Seance::getMatiere, MatiereClasseConfig::getMatiere),
                                 Joiners.equal(Seance::getClasse, MatiereClasseConfig::getClasse))
                         .filter((seance, config) -> {
-                            if (seance.getCreneau() == null) return false;
-                            java.time.LocalDate date = seance.getCreneau().getDebut().toLocalDate();
+                            if (seance.getDebut() == null) return false;
+                            java.time.LocalDate date = seance.getDebut().toLocalDate();
                             return date.isBefore(config.getDateDebut()) || date.isAfter(config.getDateFin());
                         })
                         .penalize(HardSoftScore.ONE_HARD)
@@ -91,11 +90,11 @@ public class PlanningConstraints implements ConstraintProvider {
 
         public Constraint studentGroupPresence(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getCreneau() != null)
+                                .filter(seance -> seance.getDebut() != null)
                                 .ifNotExists(fr.manaken.plannif.model.ClassePresence.class,
                                                 equal(Seance::getClasse, fr.manaken.plannif.model.ClassePresence::getClasse),
                                                 filtering((seance, presence) -> {
-                                                        java.time.LocalDate date = seance.getCreneau().getDebut().toLocalDate();
+                                                        java.time.LocalDate date = seance.getDebut().toLocalDate();
                                                         return !date.isBefore(presence.getDateDebut()) && !date.isAfter(presence.getDateFin());
                                                 }))
                                 .penalize(HardSoftScore.ONE_HARD)
@@ -114,9 +113,9 @@ public class PlanningConstraints implements ConstraintProvider {
         public Constraint teacherClassMaxHoursConsecutive(ConstraintFactory factory) {
                 var workStream = factory
                                 .forEach(Seance.class)
-                                .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getProfesseur() != null && seance.getDebut() != null && seance.getFin() != null)
                                 .groupBy(Seance::getProfesseur, Seance::getClasse,
-                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
+                                                seance -> seance.getDebut().toLocalDate(),
                                                 sumBigDecimal(this::getDurationInHours))
                                 .map(TeacherClassWork::new);
 
@@ -134,9 +133,9 @@ public class PlanningConstraints implements ConstraintProvider {
 
         public Constraint teacherMaxHoursPerDay(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getProfesseur() != null && seance.getDebut() != null && seance.getFin() != null)
                                 .groupBy(Seance::getProfesseur,
-                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
+                                                seance -> seance.getDebut().toLocalDate(),
                                                 sumBigDecimal(this::getDurationInHours))
                                 .filter((prof, date, totalHours) -> prof.getMaxHeuresParJour() != null
                                                 && totalHours.compareTo(prof.getMaxHeuresParJour()) > 0)
@@ -147,9 +146,9 @@ public class PlanningConstraints implements ConstraintProvider {
         public Constraint teacherMaxHoursPerWeek(ConstraintFactory factory) {
                 var woy = java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear();
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getProfesseur() != null && seance.getDebut() != null && seance.getFin() != null)
                                 .groupBy(Seance::getProfesseur,
-                                                seance -> seance.getCreneau().getDebut().get(woy),
+                                                seance -> seance.getDebut().get(woy),
                                                 sumBigDecimal(this::getDurationInHours))
                                 .filter((prof, week, totalHours) -> prof.getMaxHeuresParSemaine() != null
                                                 && totalHours.compareTo(prof.getMaxHeuresParSemaine()) > 0)
@@ -159,7 +158,7 @@ public class PlanningConstraints implements ConstraintProvider {
 
         public Constraint teacherMaxHoursPerSession(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getProfesseur() != null && seance.getDebut() != null && seance.getFin() != null)
                                 .filter(seance -> {
                                         BigDecimal duration = getDurationInHours(seance);
                                         return seance.getProfesseur().getMaxHeuresParSeance() != null
@@ -171,83 +170,89 @@ public class PlanningConstraints implements ConstraintProvider {
         }
 
         private BigDecimal getDurationInHours(Seance seance) {
-                long minutes = ChronoUnit.MINUTES.between(seance.getCreneau().getDebut(), seance.getCreneau().getFin());
+                if (seance.getDebut() == null || seance.getFin() == null) {
+                        return BigDecimal.ZERO;
+                }
+                long minutes = ChronoUnit.MINUTES.between(seance.getDebut(), seance.getFin());
                 return BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, java.math.RoundingMode.HALF_UP);
         }
 
         public Constraint teacherDayOff(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getProfesseur() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getProfesseur() != null && seance.getDebut() != null)
                                 .join(fr.manaken.plannif.model.ProfesseurDayOff.class,
                                                 equal(Seance::getProfesseur,
                                                                 fr.manaken.plannif.model.ProfesseurDayOff::getProfesseur))
-                                .filter((seance, dayOff) -> seance.getCreneau().getDebut().getDayOfWeek().getValue() - 1 == dayOff.getDayOfWeek())
+                                .filter((seance, dayOff) -> seance.getDebut().getDayOfWeek().getValue() - 1 == dayOff.getDayOfWeek())
                                 .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Teacher day off");
         }
 
         public Constraint roomConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(s -> s.getSalle() != null && s.getCreneau() != null)
+                                .filter(s -> s.getSalle() != null && s.getDebut() != null && s.getFin() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getSalle),
                                                 lessThan(Seance::getId))
-                                .filter((s1, s2) -> s1.getCreneau() != null && s2.getCreneau() != null
-                                                && s1.getCreneau().getDebut().isBefore(s2.getCreneau().getFin())
-                                                && s1.getCreneau().getFin().isAfter(s2.getCreneau().getDebut()))
+                                .filter((s1, s2) -> s1.getDebut() != null && s1.getFin() != null
+                                                && s2.getDebut() != null && s2.getFin() != null
+                                                && s1.getDebut().isBefore(s2.getFin())
+                                                && s1.getFin().isAfter(s2.getDebut()))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Room conflict");
         }
 
         public Constraint teacherConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(s -> s.getProfesseur() != null && s.getCreneau() != null)
+                                .filter(s -> s.getProfesseur() != null && s.getDebut() != null && s.getFin() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
                                                 lessThan(Seance::getId))
-                                .filter((s1, s2) -> s1.getCreneau() != null && s2.getCreneau() != null
-                                                && s1.getCreneau().getDebut().isBefore(s2.getCreneau().getFin())
-                                                && s1.getCreneau().getFin().isAfter(s2.getCreneau().getDebut()))
+                                .filter((s1, s2) -> s1.getDebut() != null && s1.getFin() != null
+                                                && s2.getDebut() != null && s2.getFin() != null
+                                                && s1.getDebut().isBefore(s2.getFin())
+                                                && s1.getFin().isAfter(s2.getDebut()))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Teacher conflict");
         }
 
         public Constraint studentGroupConflict(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(s -> s.getClasse() != null && s.getCreneau() != null)
+                                .filter(s -> s.getClasse() != null && s.getDebut() != null && s.getFin() != null)
                                 .join(Seance.class,
                                               equal(Seance::getClasse),
                                               lessThan(Seance::getId))
-                                .filter((s1, s2) -> s1.getCreneau() != null && s2.getCreneau() != null
-                                                && s1.getCreneau().getDebut().isBefore(s2.getCreneau().getFin())
-                                                && s1.getCreneau().getFin().isAfter(s2.getCreneau().getDebut()))
+                                .filter((s1, s2) -> s1.getDebut() != null && s1.getFin() != null
+                                                && s2.getDebut() != null && s2.getFin() != null
+                                                && s1.getDebut().isBefore(s2.getFin())
+                                                && s1.getFin().isAfter(s2.getDebut()))
                                 .penalize(HardSoftScore.ONE_HARD)
                                 .asConstraint("Student group conflict");
         }
 
         public Constraint teacherMaxGap(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(s -> s.getProfesseur() != null && s.getCreneau() != null)
+                                .filter(s -> s.getProfesseur() != null && s.getDebut() != null && s.getFin() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getProfesseur),
-                                                equal(s -> s.getCreneau().getFin().toLocalDate(), s -> s.getCreneau().getDebut().toLocalDate()),
-                                                lessThan(s -> s.getCreneau().getFin(), s -> s.getCreneau().getDebut()))
+                                                equal(s -> s.getFin().toLocalDate(), s -> s.getDebut().toLocalDate()),
+                                                lessThan(Seance::getFin, Seance::getDebut))
                                 .ifNotExists(Seance.class,
                                                 equal((s1, s2) -> s1.getProfesseur(), Seance::getProfesseur),
-                                                lessThan((s1, s2) -> s1.getCreneau().getFin(), s -> s.getCreneau().getDebut()),
-                                                greaterThan((s1, s2) -> s2.getCreneau().getDebut(), s -> s.getCreneau().getDebut()))
-                                .filter((s1, s2) -> ChronoUnit.MINUTES.between(s1.getCreneau().getFin(),
-                                                s2.getCreneau().getDebut()) > 120)
+                                                lessThan((s1, s2) -> s1.getFin(), Seance::getDebut),
+                                                greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
+                                .filter((s1, s2) -> ChronoUnit.MINUTES.between(s1.getFin(),
+                                                s2.getDebut()) > 120)
                                 .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Teacher max gap 2h");
         }
 
         public Constraint subjectClassMaxSessionsPerDay(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getClasse() != null && seance.getMatiere() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getClasse() != null && seance.getMatiere() != null && seance.getDebut() != null)
                                 .groupBy(Seance::getClasse,
                                                 Seance::getMatiere,
-                                                seance -> seance.getCreneau().getDebut().toLocalDate(),
+                                                seance -> seance.getDebut().toLocalDate(),
                                                 ai.timefold.solver.core.api.score.stream.ConstraintCollectors.count())
                                 .filter((classe, matiere, date, count) -> count > 1)
                                 .penalize(HardSoftScore.ONE_SOFT)
@@ -256,47 +261,27 @@ public class PlanningConstraints implements ConstraintProvider {
 
         public Constraint subjectClassSpreading(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getClasse() != null && seance.getMatiere() != null && seance.getCreneau() != null)
+                                .filter(seance -> seance.getClasse() != null && seance.getMatiere() != null && seance.getDebut() != null)
                                 .join(Seance.class,
                                                 equal(Seance::getClasse),
                                                 equal(Seance::getMatiere),
                                                 lessThan(Seance::getId))
                                 .filter((s1, s2) -> {
                                         long days = Math.abs(java.time.temporal.ChronoUnit.DAYS.between(
-                                                        s1.getCreneau().getDebut().toLocalDate(),
-                                                        s2.getCreneau().getDebut().toLocalDate()));
+                                                        s1.getDebut().toLocalDate(),
+                                                        s2.getDebut().toLocalDate()));
                                         return days <= 1;
                                 })
                                 .penalize(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Subject class spreading penalty");
         }
 
-        public Constraint studentGroupWeekTypeMismatch(ConstraintFactory factory) {
-                return factory.forEach(Seance.class)
-                                .filter(seance -> seance.getCreneau() != null && seance.getClasse() != null)
-                                .join(ClassePresence.class,
-                                                equal(Seance::getClasse, ClassePresence::getClasse),
-                                                filtering((seance, presence) -> {
-                                                        java.time.LocalDate date = seance.getCreneau().getDebut().toLocalDate();
-                                                        if (date.isBefore(presence.getDateDebut()) || date.isAfter(presence.getDateFin())) {
-                                                                return false;
-                                                        }
-                                                        long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(presence.getDateDebut(), date);
-                                                        int weekIndex = (int) (daysBetween / 7) + 1;
-                                                        SemaineType expectedSemaineType = SemaineType.fromIndex(weekIndex);
-                                                        SemaineType actualSemaineType = seance.getCreneau().getSemaineType();
-                                                        return actualSemaineType != expectedSemaineType;
-                                                }))
-                                .penalize(HardSoftScore.ONE_HARD)
-                                .asConstraint("Student group week type mismatch");
-        }
-
         public Constraint vieDeClasseTimingConstraint(ConstraintFactory factory) {
                 return factory.forEach(Seance.class)
-                    .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE && seance.getCreneau() != null)
+                    .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE && seance.getDebut() != null && seance.getFin() != null)
                     .ifNotExists(ClassePresence.class,
                         equal(Seance::getClasse, ClassePresence::getClasse),
-                        filtering((seance, presence) -> presence.isValidVieDeClasse(seance.getCreneau())))
+                        filtering((seance, presence) -> presence.isValidVieDeClasse(seance.getDebut(), seance.getFin())))
                     .penalize(HardSoftScore.ONE_HARD)
                     .asConstraint("Vie de classe timing constraint");
         }

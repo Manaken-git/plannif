@@ -30,8 +30,8 @@ public class PlanningExporter {
         Map<fr.manaken.plannif.model.Matiere, Double> hoursByMatiere = new HashMap<>();
 
         for (Seance s : planning.getSeances()) {
-            if (s.getCreneau() != null && s.getProfesseur() != null) {
-                double duration = ChronoUnit.MINUTES.between(s.getCreneau().getDebut(), s.getCreneau().getFin()) / 60.0;
+            if (s.getDebut() != null && s.getFin() != null && s.getProfesseur() != null) {
+                double duration = ChronoUnit.MINUTES.between(s.getDebut(), s.getFin()) / 60.0;
                 hoursByProf.merge(s.getProfesseur(), duration, (v1, v2) -> v1 + v2);
                 hoursByClasse.merge(s.getClasse(), duration, (v1, v2) -> v1 + v2);
                 hoursByMatiere.merge(s.getMatiere(), duration, (v1, v2) -> v1 + v2);
@@ -67,7 +67,7 @@ public class PlanningExporter {
 
         // GANTT VIEW
         Map<String, Map<fr.manaken.plannif.model.Professeur, List<Seance>>> sessionsByDayAndProf = planning.getSeances().stream()
-                .filter(s -> s.getCreneau() != null && s.getProfesseur() != null)
+                .filter(s -> s.getDebut() != null && s.getFin() != null && s.getProfesseur() != null)
                 .collect(Collectors.groupingBy(
                         s -> "Planning Général",
                         TreeMap::new,
@@ -90,8 +90,8 @@ public class PlanningExporter {
                 for (int h = 8; h <= 18; h++) html.append("<div class=\"grid-line\"></div>");
                 
                 for (Seance seance : profSessions.get(prof)) {
-                    double offset = calculateOffset(seance.getCreneau().getDebut().toLocalTime());
-                    double width = calculateWidth(seance.getCreneau().getDebut().toLocalTime(), seance.getCreneau().getFin().toLocalTime());
+                    double offset = calculateOffset(seance.getDebut().toLocalTime());
+                    double width = calculateWidth(seance.getDebut().toLocalTime(), seance.getFin().toLocalTime());
                     html.append("            <div class=\"session-bar\" style=\"left: ").append(offset).append("%; width: ").append(width).append("%;\" ")
                             .append("data-prof-id=\"").append(prof.getId()).append("\" ")
                             .append("data-classe-id=\"").append(seance.getClasse().getId()).append("\" ")
@@ -99,7 +99,7 @@ public class PlanningExporter {
                             .append("title=\"").append(seance.getMatiere().getNom()).append(" - ").append(seance.getClasse().getNom()).append("\">\n")
                             .append("              <div class=\"session-title\">").append(seance.getMatiere().getNom()).append("</div>\n")
                             .append("              <div class=\"session-info\">").append(seance.getClasse().getNom()).append("</div>\n")
-                            .append("              <div class=\"session-time\">").append(seance.getCreneau().getDebut().format(TIME_FORMATTER)).append("</div>\n")
+                            .append("              <div class=\"session-time\">").append(seance.getDebut().format(TIME_FORMATTER)).append("</div>\n")
                             .append("            </div>\n");
                 }
                 html.append("          </div>\n        </div>\n");

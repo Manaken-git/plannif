@@ -17,4 +17,6 @@ public class SeanceDto {
     private Long salleId;
     private Long creneauId;
     private String type;
+    private java.time.LocalDateTime debut;
+    private java.time.LocalDateTime fin;
 }

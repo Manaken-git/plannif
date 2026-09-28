@@ -2,9 +2,9 @@ package fr.manaken.plannif.model;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.EqualsAndHashCode;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,38 +32,6 @@ public class Classe {
 
     
     private java.util.List<ClassePresence> presences = new java.util.ArrayList<>();
-
-    public boolean needsVieDeClasse(ClassePresence presence, java.util.List<Vacances> allVacances) {
-        return countVieDeClasseNeeded(presence) > 0;
-    }
-
-    public int countVieDeClasseNeeded(ClassePresence presence) {
-        if (presence == null) {
-            return 0;
-        }
-        int needed = 0;
-        if (presence.getFirstMonday() != null) {
-            boolean hasMonday = seances != null && seances.stream().anyMatch(s ->
-                    s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
-                            && s.getCreneau() != null
-                            && presence.isValidVieDeClasse(s.getCreneau())
-                            && s.getCreneau().getDebut().toLocalDate().equals(presence.getFirstMonday()));
-            if (!hasMonday) {
-                needed++;
-            }
-        }
-        if (presence.getLastFriday() != null) {
-            boolean hasFriday = seances != null && seances.stream().anyMatch(s ->
-                    s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
-                            && s.getCreneau() != null
-                            && presence.isValidVieDeClasse(s.getCreneau())
-                            && s.getCreneau().getDebut().toLocalDate().equals(presence.getLastFriday()));
-            if (!hasFriday) {
-                needed++;
-            }
-        }
-        return needed;
-    }
 
     @Override
     public String toString() {

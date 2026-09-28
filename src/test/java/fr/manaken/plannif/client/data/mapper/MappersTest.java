@@ -118,8 +118,8 @@ class MappersTest {
         Salle salle = new Salle();
         salle.setId(40L);
 
-        Creneau creneau = new Creneau();
-        creneau.setId(50L);
+        java.time.LocalDateTime debut = java.time.LocalDateTime.of(2024, 2, 12, 8, 0);
+        java.time.LocalDateTime fin = java.time.LocalDateTime.of(2024, 2, 12, 9, 0);
 
         Seance entity = new Seance();
         entity.setId(1L);
@@ -127,7 +127,7 @@ class MappersTest {
         entity.setClasse(classe);
         entity.setMatiere(matiere);
         entity.setSalle(salle);
-        entity.setCreneau(creneau);
+        entity.setDebut(debut);
         entity.setType(Seance.TypeSeance.COURS);
 
         SeanceDto dto = seanceMapper.toDto(entity);
@@ -136,7 +136,8 @@ class MappersTest {
         assertEquals(20L, dto.getClasseId());
         assertEquals(30L, dto.getMatiereId());
         assertEquals(40L, dto.getSalleId());
-        assertEquals(50L, dto.getCreneauId());
+        assertEquals(debut, dto.getDebut());
+        assertEquals(fin, dto.getFin());
         assertEquals("COURS", dto.getType());
 
         Seance mapped = seanceMapper.toEntity(dto);
@@ -145,7 +146,8 @@ class MappersTest {
         assertEquals(20L, mapped.getClasse().getId());
         assertEquals(30L, mapped.getMatiere().getId());
         assertEquals(40L, mapped.getSalle().getId());
-        assertEquals(50L, mapped.getCreneau().getId());
+        assertEquals(debut, mapped.getDebut());
+        assertEquals(fin, mapped.getFin());
         assertEquals(Seance.TypeSeance.COURS, mapped.getType());
     }
 }

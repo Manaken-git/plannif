@@ -6,7 +6,8 @@ import ai.timefold.solver.core.api.domain.solution.PlanningSolution;
 import ai.timefold.solver.core.api.domain.solution.ProblemFactCollectionProperty;
 import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
-import fr.manaken.plannif.model.Creneau;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.manaken.plannif.model.Salle;
 import fr.manaken.plannif.model.Seance;
 import fr.manaken.plannif.model.Professeur;
@@ -14,23 +15,26 @@ import fr.manaken.plannif.model.Classe;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @PlanningSolution
 @Getter
 @Setter
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Planning {
 
     private Long id;
     private String nom;
-    private java.time.LocalDateTime dateCreation;
+    private LocalDateTime dateCreation;
 
     @PlanningEntityCollectionProperty
     private List<Seance> seances = new java.util.ArrayList<>();
 
-    @ValueRangeProvider(id = "creneauRange")
+    @ValueRangeProvider(id = "dateDebutRange")
     @ProblemFactCollectionProperty
-    private List<Creneau> creneaux = new java.util.ArrayList<>();
+    private List<LocalDateTime> datesDebutPossibles = new java.util.ArrayList<>();
 
     @ValueRangeProvider(id = "salleRange")
     @ProblemFactCollectionProperty
@@ -61,4 +65,20 @@ public class Planning {
     @PlanningScore
     private HardSoftScore score;
 
+    @JsonProperty("creneaux")
+    public void setCreneauxFromJson(List<Map<String, Object>> creneauxJson) {
+        if (creneauxJson != null) {
+            for (Map<String, Object> map : creneauxJson) {
+                Object debutObj = map.get("debut");
+                if (debutObj instanceof String str) {
+                    try {
+                        LocalDateTime dt = LocalDateTime.parse(str);
+                        if (!this.datesDebutPossibles.contains(dt)) {
+                            this.datesDebutPossibles.add(dt);
+                        }
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+    }
 }

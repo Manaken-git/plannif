@@ -120,16 +120,9 @@ public class PlanningController {
     private Planning generateProblem() {
         Planning planning = new Planning();
 
-        // Creneau
-        Creneau c1 = new Creneau();
-        c1.setId(1L);
-        c1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
-        c1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
-        c1.setSemaineType(SemaineType.SEMAINE_1);
-
-        List<Creneau> creneaux = new ArrayList<>();
-        creneaux.add(c1);
-        planning.setCreneaux(creneaux);
+        // Dates debut possibles
+        LocalDateTime debut = LocalDateTime.of(2024, 2, 12, 8, 0);
+        planning.getDatesDebutPossibles().add(debut);
 
         // Salles
         Salle s1 = new Salle();
@@ -181,14 +174,14 @@ public class PlanningController {
         seance1.setProfesseur(p1);
         seance1.setClasse(cl1);
         seance1.setMatiere(m1);
-        seance1.setCreneau(c1);
+        seance1.setDebut(debut);
 
         Seance seance2 = new Seance();
         seance2.setId(2L);
         seance2.setProfesseur(p2);
         seance2.setClasse(cl2);
         seance2.setMatiere(m1);
-        seance2.setCreneau(c1);
+        seance2.setDebut(debut);
 
         List<Seance> seances = new ArrayList<>();
         seances.add(seance1);

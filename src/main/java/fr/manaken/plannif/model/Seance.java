@@ -39,11 +39,47 @@ public class Seance {
 
     
     
-    @PlanningVariable(valueRangeProviderRefs = "creneauRange")
-    private Creneau creneau;
+    @PlanningVariable(valueRangeProviderRefs = "dateDebutRange")
+    private java.time.LocalDateTime debut;
 
-    
+    private java.time.LocalDateTime fin;
+
+    private Integer dureeMinutes;
+
     private TypeSeance type;
+
+    public int getDureeMinutes() {
+        if (dureeMinutes != null) {
+            return dureeMinutes;
+        }
+        if (type == TypeSeance.TP) {
+            return 90;
+        }
+        return 60;
+    }
+
+    public void setDebut(java.time.LocalDateTime debut) {
+        this.debut = debut;
+        if (debut != null) {
+            this.fin = debut.plusMinutes(getDureeMinutes());
+        } else {
+            this.fin = null;
+        }
+    }
+
+    public void setFin(java.time.LocalDateTime fin) {
+        this.fin = fin;
+        if (this.debut != null && fin != null) {
+            this.dureeMinutes = (int) java.time.temporal.ChronoUnit.MINUTES.between(this.debut, fin);
+        }
+    }
+
+    public void setType(TypeSeance type) {
+        this.type = type;
+        if (dureeMinutes == null && this.debut != null) {
+            this.fin = this.debut.plusMinutes(getDureeMinutes());
+        }
+    }
 
     @Override
     public String toString() {
@@ -53,7 +89,8 @@ public class Seance {
                 ", classe=" + classe +
                 ", matiere=" + matiere +
                 ", salle=" + salle +
-                ", creneau=" + creneau +
+                ", debut=" + debut +
+                ", fin=" + fin +
                 ", type=" + type +
                 '}';
     }
