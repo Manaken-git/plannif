@@ -29,6 +29,9 @@ public class Planning {
     private String nom;
     private LocalDateTime dateCreation;
 
+    @ai.timefold.solver.core.api.domain.constraintweight.ConstraintConfigurationProvider
+    private PlanningConstraintConfiguration constraintConfiguration = new PlanningConstraintConfiguration();
+
     @PlanningEntityCollectionProperty
     private List<Seance> seances = new java.util.ArrayList<>();
 
@@ -61,6 +64,12 @@ public class Planning {
 
     @ProblemFactCollectionProperty
     private List<fr.manaken.plannif.model.Vacances> vacances = new java.util.ArrayList<>();
+
+    @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.ProfesseurIndisponibilite> professeurIndisponibilites = new java.util.ArrayList<>();
+
+    @ProblemFactCollectionProperty
+    private List<fr.manaken.plannif.model.DistanceSalle> distanceSalles = new java.util.ArrayList<>();
 
     @PlanningScore
     private HardSoftScore score;

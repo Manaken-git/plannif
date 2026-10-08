@@ -89,6 +89,7 @@ public class PlanningService {
         planning.setClassePresences(allPresences);
 
         List<ProfesseurDayOff> allDaysOff = new ArrayList<>();
+        List<ProfesseurIndisponibilite> allIndispos = new ArrayList<>();
         for (Professeur p : professeurs) {
             if (p.getDaysOff() != null) {
                 for (ProfesseurDayOff pdo : p.getDaysOff()) {
@@ -96,8 +97,15 @@ public class PlanningService {
                     allDaysOff.add(pdo);
                 }
             }
+            if (p.getIndisponibilites() != null) {
+                for (ProfesseurIndisponibilite pi : p.getIndisponibilites()) {
+                    pi.setProfesseur(p);
+                    allIndispos.add(pi);
+                }
+            }
         }
         planning.setProfesseurDayOffs(allDaysOff);
+        planning.setProfesseurIndisponibilites(allIndispos);
 
         List<Vacances> vacances = new ArrayList<>();
         try {

@@ -196,7 +196,7 @@ class ConstraintVerifierTest {
 
         constraintVerifier.verifyThat(PlanningConstraints::teacherMaxHoursPerDay)
                 .givenSolution(problem)
-                .penalizesBy(1);
+                .penalizesBy(120);
     }
 
     @Test
@@ -236,7 +236,7 @@ class ConstraintVerifierTest {
 
         constraintVerifier.verifyThat(PlanningConstraints::teacherMaxHoursPerWeek)
                 .givenSolution(problem)
-                .penalizesBy(1);
+                .penalizesBy(300);
     }
 
     @Test
@@ -266,7 +266,7 @@ class ConstraintVerifierTest {
 
         constraintVerifier.verifyThat(PlanningConstraints::teacherMaxHoursPerSession)
                 .givenSolution(problem)
-                .penalizesBy(1);
+                .penalizesBy(60);
     }
 
     @Test
@@ -310,7 +310,7 @@ class ConstraintVerifierTest {
 
         constraintVerifier.verifyThat(PlanningConstraints::teacherClassMaxHoursConsecutive)
                 .givenSolution(problem)
-                .penalizesBy(1);
+                .penalizesBy(60);
     }
 
     @Test
@@ -742,6 +742,547 @@ class ConstraintVerifierTest {
         problem.getVacances().add(toussaint);
 
         constraintVerifier.verifyThat(PlanningConstraints::vieDeClasseTimingConstraint)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void teacherMaxGap_ProportionalPenalty() {
+        Planning problem = new Planning();
+        LocalDateTime d1 = LocalDateTime.of(2024, 2, 12, 8, 0);
+        LocalDateTime f1 = LocalDateTime.of(2024, 2, 12, 10, 0); // ends at 10h00
+
+        LocalDateTime d2 = LocalDateTime.of(2024, 2, 12, 13, 0); // starts at 13h00 (gap = 180 min)
+        LocalDateTime f2 = LocalDateTime.of(2024, 2, 12, 15, 0);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setProfesseur(prof);
+        s1.setDebut(d1);
+        s1.setFin(f1);
+        s1.setSalle(salle);
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setProfesseur(prof);
+        s2.setDebut(d2);
+        s2.setFin(f2);
+        s2.setSalle(salle);
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getDatesDebutPossibles().addAll(List.of(d1, d2));
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        // Gap is 180 min, threshold is 120 min -> penalty = 180 - 120 = 60
+        constraintVerifier.verifyThat(PlanningConstraints::teacherMaxGap)
+                .givenSolution(problem)
+                .penalizesBy(60);
+    }
+
+    @Test
+    void teacherClassMaxHoursOverTwoDays_RenamedConstraint() {
+        Planning problem = new Planning();
+        LocalDateTime d1 = LocalDateTime.of(2024, 2, 12, 8, 0);
+        LocalDateTime f1 = LocalDateTime.of(2024, 2, 12, 11, 0); // 180 min
+
+        LocalDateTime d2 = LocalDateTime.of(2024, 2, 13, 8, 0);
+        LocalDateTime f2 = LocalDateTime.of(2024, 2, 13, 11, 0); // 180 min (Total 360 min > 300 min)
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setProfesseur(prof);
+        s1.setClasse(classe);
+        s1.setDebut(d1);
+        s1.setFin(f1);
+        s1.setSalle(salle);
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setProfesseur(prof);
+        s2.setClasse(classe);
+        s2.setDebut(d2);
+        s2.setFin(f2);
+        s2.setSalle(salle);
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getDatesDebutPossibles().addAll(List.of(d1, d2));
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+        problem.getClasses().add(classe);
+
+        constraintVerifier.verifyThat(PlanningConstraints::teacherClassMaxHoursOverTwoDays)
+                .givenSolution(problem)
+                .penalizesBy(60);
+    }
+
+    @Test
+    void customConstraintConfigurationWeight() {
+        Planning problem = new Planning();
+        LocalDateTime debut = LocalDateTime.of(2024, 2, 12, 8, 0);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        Professeur prof1 = new Professeur();
+        prof1.setId(1L);
+        Professeur prof2 = new Professeur();
+        prof2.setId(2L);
+
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setSalle(salle);
+        s1.setDebut(debut);
+        s1.setProfesseur(prof1);
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setSalle(salle);
+        s2.setDebut(debut);
+        s2.setProfesseur(prof2);
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getSalles().add(salle);
+        problem.getDatesDebutPossibles().add(debut);
+        problem.getProfesseurs().addAll(List.of(prof1, prof2));
+
+        // Adjust room conflict weight to 5 Hard. The constraint match count is 1, producing -5hard score.
+        problem.getConstraintConfiguration().setRoomConflict(ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore.ofHard(5));
+
+        constraintVerifier.verifyThat(PlanningConstraints::roomConflict)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void roomCapacity() {
+        Planning problem = new Planning();
+        Salle salle = new Salle();
+        salle.setId(1L);
+        salle.setCapacite(25);
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Classe classe = new Classe();
+        classe.setId(1L);
+        classe.setEffectif(30); // 30 > 25
+
+        Seance s = new Seance();
+        s.setId(1L);
+        s.setSalle(salle);
+        s.setProfesseur(prof);
+        s.setClasse(classe);
+        s.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        s.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+
+        problem.getSeances().add(s);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+        problem.getClasses().add(classe);
+
+        // 30 - 25 = 5 penalty
+        constraintVerifier.verifyThat(PlanningConstraints::roomCapacity)
+                .givenSolution(problem)
+                .penalizesBy(5);
+    }
+
+    @Test
+    void roomEquipmentMatch() {
+        Planning problem = new Planning();
+        Salle salle = new Salle();
+        salle.setId(1L);
+        salle.setType("STANDARD");
+
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Matiere matiere = new Matiere();
+        matiere.setId(1L);
+
+        MatiereClasseConfig config = new MatiereClasseConfig();
+        config.setId(1L);
+        config.setClasse(classe);
+        config.setMatiere(matiere);
+        config.setTypeSalleRequis("LABO");
+
+        Seance s = new Seance();
+        s.setId(1L);
+        s.setSalle(salle);
+        s.setProfesseur(prof);
+        s.setClasse(classe);
+        s.setMatiere(matiere);
+        s.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        s.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+
+        problem.getSeances().add(s);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+        problem.getClasses().add(classe);
+        problem.getMatieres().add(matiere);
+        problem.getMatiereClasseConfigs().add(config);
+
+        constraintVerifier.verifyThat(PlanningConstraints::roomEquipmentMatch)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void studentLunchBreak() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Session 1 ends at 12:30, Session 2 starts at 13:00 -> break is 30 min (< 60 min)
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 11, 30));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 12, 30));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setClasse(classe);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 13, 0));
+        s2.setFin(LocalDateTime.of(2024, 2, 12, 14, 0));
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        // 60 - 30 = 30 penalty
+        constraintVerifier.verifyThat(PlanningConstraints::studentLunchBreak)
+                .givenSolution(problem)
+                .penalizesBy(30);
+    }
+
+    @Test
+    void studentMaxHoursPerDay() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Two 4h sessions = 8h (480 min) > max 7h (420 min)
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 12, 0));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setClasse(classe);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 13, 0));
+        s2.setFin(LocalDateTime.of(2024, 2, 12, 17, 0));
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        // 480 - 420 = 60 penalty
+        constraintVerifier.verifyThat(PlanningConstraints::studentMaxHoursPerDay)
+                .givenSolution(problem)
+                .penalizesBy(60);
+    }
+
+    @Test
+    void studentMaxGap() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Session 1: 8h-9h, Session 2: 10h-11h (1h morning gap = 60 min)
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setClasse(classe);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 10, 0));
+        s2.setFin(LocalDateTime.of(2024, 2, 12, 11, 0));
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::studentMaxGap)
+                .givenSolution(problem)
+                .penalizesBy(60);
+    }
+
+    @Test
+    void alignedSessions() {
+        Planning problem = new Planning();
+        Long alignementId = 100L;
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof1 = new Professeur();
+        prof1.setId(1L);
+        Professeur prof2 = new Professeur();
+        prof2.setId(2L);
+
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setAlignementId(alignementId);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof1);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setAlignementId(alignementId);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof2);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0)); // Misaligned debut
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().addAll(List.of(prof1, prof2));
+
+        constraintVerifier.verifyThat(PlanningConstraints::alignedSessions)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void teacherLunchBreak() {
+        Planning problem = new Planning();
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        // s1 ends at 12:30, s2 starts at 13:00 (break is 30 min < 45 min)
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setProfesseur(prof);
+        s1.setSalle(salle);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 11, 30));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 12, 30));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setProfesseur(prof);
+        s2.setSalle(salle);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 13, 0));
+        s2.setFin(LocalDateTime.of(2024, 2, 12, 14, 0));
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getProfesseurs().add(prof);
+        problem.getSalles().add(salle);
+
+        // 45 - 30 = 15 penalty
+        constraintVerifier.verifyThat(PlanningConstraints::teacherLunchBreak)
+                .givenSolution(problem)
+                .penalizesBy(15);
+    }
+
+    @Test
+    void teacherUnavailability() {
+        Planning problem = new Planning();
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+        Salle salle = new Salle();
+        salle.setId(1L);
+
+        ProfesseurIndisponibilite indispo = new ProfesseurIndisponibilite();
+        indispo.setId(1L);
+        indispo.setProfesseur(prof);
+        indispo.setDayOfWeek(0); // Monday
+        indispo.setHeureDebut(java.time.LocalTime.of(8, 0));
+        indispo.setHeureFin(java.time.LocalTime.of(12, 0));
+
+        Seance s = new Seance();
+        s.setId(1L);
+        s.setProfesseur(prof);
+        s.setSalle(salle);
+        s.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0)); // Monday 9h-10h
+        s.setFin(LocalDateTime.of(2024, 2, 12, 10, 0));
+
+        problem.getSeances().add(s);
+        problem.getProfesseurs().add(prof);
+        problem.getSalles().add(salle);
+        problem.getProfesseurIndisponibilites().add(indispo);
+
+        constraintVerifier.verifyThat(PlanningConstraints::teacherUnavailability)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void teacherTravelDistance() {
+        Planning problem = new Planning();
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Salle r1 = new Salle();
+        r1.setId(1L);
+        Salle r2 = new Salle();
+        r2.setId(2L);
+
+        DistanceSalle dist = new DistanceSalle();
+        dist.setId(1L);
+        dist.setSalle1(r1);
+        dist.setSalle2(r2);
+        dist.setDistance(350L); // 350m > 200m
+
+        // Consecutive sessions with zero transition time in distant rooms
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setProfesseur(prof);
+        s1.setSalle(r1);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setProfesseur(prof);
+        s2.setSalle(r2);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0)); // immediately follows
+        s2.setFin(LocalDateTime.of(2024, 2, 12, 10, 0));
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getProfesseurs().add(prof);
+        problem.getSalles().addAll(List.of(r1, r2));
+        problem.getDistanceSalles().add(dist);
+
+        constraintVerifier.verifyThat(PlanningConstraints::teacherTravelDistance)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void highCognitiveLoad() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Matiere maths = new Matiere();
+        maths.setId(1L);
+
+        MatiereClasseConfig config = new MatiereClasseConfig();
+        config.setId(1L);
+        config.setClasse(classe);
+        config.setMatiere(maths);
+        config.setPrioriteMatin(true);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Seance s = new Seance();
+        s.setId(1L);
+        s.setClasse(classe);
+        s.setMatiere(maths);
+        s.setSalle(salle);
+        s.setProfesseur(prof);
+        s.setDebut(LocalDateTime.of(2024, 2, 12, 14, 0)); // Afternoon slot (14h > 12h30)
+        s.setFin(LocalDateTime.of(2024, 2, 12, 15, 0));
+
+        problem.getSeances().add(s);
+        problem.getClasses().add(classe);
+        problem.getMatieres().add(maths);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+        problem.getMatiereClasseConfigs().add(config);
+
+        constraintVerifier.verifyThat(PlanningConstraints::highCognitiveLoad)
+                .givenSolution(problem)
+                .penalizesBy(1);
+    }
+
+    @Test
+    void sessionPairing() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        Matiere matiere = new Matiere();
+        matiere.setId(1L);
+
+        // Two separated 1h sessions on the same day instead of contiguous
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setMatiere(matiere);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 8, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 9, 0));
+
+        Seance s2 = new Seance();
+        s2.setId(2L);
+        s2.setClasse(classe);
+        s2.setMatiere(matiere);
+        s2.setSalle(salle);
+        s2.setProfesseur(prof);
+        s2.setDebut(LocalDateTime.of(2024, 2, 12, 14, 0));
+        s2.setFin(LocalDateTime.of(2024, 2, 12, 15, 0));
+
+        problem.getSeances().addAll(List.of(s1, s2));
+        problem.getClasses().add(classe);
+        problem.getMatieres().add(matiere);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::sessionPairing)
                 .givenSolution(problem)
                 .penalizesBy(1);
     }

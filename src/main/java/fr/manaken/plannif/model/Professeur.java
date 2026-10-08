@@ -29,6 +29,18 @@ public class Professeur {
     private BigDecimal maxHeuresParSemaine;
     private BigDecimal maxHeuresParSeance;
 
+    public Long getMaxMinutesParJour() {
+        return maxHeuresParJour != null ? maxHeuresParJour.multiply(BigDecimal.valueOf(60)).longValue() : null;
+    }
+
+    public Long getMaxMinutesParSemaine() {
+        return maxHeuresParSemaine != null ? maxHeuresParSemaine.multiply(BigDecimal.valueOf(60)).longValue() : null;
+    }
+
+    public Long getMaxMinutesParSeance() {
+        return maxHeuresParSeance != null ? maxHeuresParSeance.multiply(BigDecimal.valueOf(60)).longValue() : null;
+    }
+
     
     
     private PlageHoraire plageHorairePreferee; // Nouveau champ
@@ -39,6 +51,7 @@ public class Professeur {
 
     
     private java.util.List<ProfesseurDayOff> daysOff = new java.util.ArrayList<>();
+    private java.util.List<ProfesseurIndisponibilite> indisponibilites = new java.util.ArrayList<>();
 
     private Set<Matiere> matieres = new HashSet<>();
 

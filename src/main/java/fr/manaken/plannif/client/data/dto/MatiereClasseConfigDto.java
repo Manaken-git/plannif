@@ -10,5 +10,19 @@ public record MatiereClasseConfigDto(
         String matiereNom,
         LocalDate dateDebut,
         LocalDate dateFin,
-        Long volumeHorairePeriode
-) {}
+        Long volumeHorairePeriode,
+        String typeSalleRequis,
+        Boolean prioriteMatin
+) {
+    public MatiereClasseConfigDto(
+            Long id,
+            Long classeId,
+            String classeNom,
+            Long matiereId,
+            String matiereNom,
+            LocalDate dateDebut,
+            LocalDate dateFin,
+            Long volumeHorairePeriode) {
+        this(id, classeId, classeNom, matiereId, matiereNom, dateDebut, dateFin, volumeHorairePeriode, null, null);
+    }
+}

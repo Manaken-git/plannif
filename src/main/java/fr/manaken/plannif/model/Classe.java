@@ -21,6 +21,17 @@ public class Classe {
     private Long id;
 
     private String nom;
+    private Integer effectif;
+
+    public int getEffectif() {
+        if (effectif != null) {
+            return effectif;
+        }
+        if (eleves != null && !eleves.isEmpty()) {
+            return eleves.size();
+        }
+        return 30;
+    }
 
     
     @JsonIgnore

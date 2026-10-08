@@ -45,17 +45,39 @@ public class Seance {
     private java.time.LocalDateTime fin;
 
     private Integer dureeMinutes;
+    private Integer dureeAttendueMinutes;
+
+    private String typeSalleRequis;
+    private Long alignementId;
 
     private TypeSeance type;
 
-    public int getDureeMinutes() {
-        if (dureeMinutes != null) {
-            return dureeMinutes;
+    public String getRequiredRoomType() {
+        return typeSalleRequis;
+    }
+
+    public int getExpectedDurationMinutes() {
+        if (dureeAttendueMinutes != null) {
+            return dureeAttendueMinutes;
         }
         if (type == TypeSeance.TP) {
             return 90;
         }
         return 60;
+    }
+
+    public long getActualDurationMinutes() {
+        if (this.debut == null || this.fin == null) {
+            return 0;
+        }
+        return java.time.temporal.ChronoUnit.MINUTES.between(this.debut, this.fin);
+    }
+
+    public int getDureeMinutes() {
+        if (dureeMinutes != null) {
+            return dureeMinutes;
+        }
+        return getExpectedDurationMinutes();
     }
 
     public void setDebut(java.time.LocalDateTime debut) {

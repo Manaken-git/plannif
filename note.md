@@ -64,35 +64,36 @@ graph LR
 
 ```
 src/main/java/fr/manaken/plannif/
-├── PlannifApplication.java               # Point d'entrée Spring Boot
-├── business/                             # Cœur Timefold (Solution & Contraintes)
+├── PlannifApplication.j├── business/                             # Cœur Timefold (Solution, Configuration & Contraintes)
 │   ├── Planning.java                     # @PlanningSolution (Agrégat de résolution)
-│   └── PlanningConstraints.java          # @ConstraintProvider (17 contraintes de score)
+│   ├── PlanningConstraintConfiguration.java # @ConstraintConfiguration (Poids dynamiques des scores)
+│   └── PlanningConstraints.java          # @ConstraintProvider (28 contraintes de score)
 ├── client/data/                          # Client REST vers planning-data
 │   ├── PlannifDataApiClient.java         # RestClient Spring 6 pour tous les endpoints
 │   ├── config/PlannifDataClientConfig.java # Configuration du Bean RestClient
-│   ├── dto/                              # DTOs (ClasseDto, SeanceDto, PlanningDto, etc.)
+│   └── dto/                              # DTOs (ClasseDto, SeanceDto, PlanningDto, etc.)
 │   └── mapper/                           # Mappers MapStruct (entité <-> DTO)
 ├── controller/
 │   └── PlanningController.java           # Endpoints REST (/planning/solve, /planning/solve-html)
 ├── exporter/
 │   └── PlanningExporter.java             # Générateur de Dashboard HTML / diagramme de Gantt interactif
 ├── model/                                # Modèles du domaine
-│   ├── Classe.java                       # Classe scolaire, liste presences
-│   ├── ClassePresence.java               # Période de présence obligatoire [dateDebut, dateFin], calculs firstDay/lastDay et validation isValidVieDeClasse
+│   ├── Classe.java                       # Classe scolaire (effectif, presences, eleves)
+│   ├── ClassePresence.java               # Période de présence obligatoire [dateDebut, dateFin]
 │   ├── DistanceSalle.java                # Matrice des distances entre salles
 │   ├── Eleve.java                        # Élève rattaché à une Classe
 │   ├── Equipement.java                   # Matériel / ressource
 │   ├── EquipementSalle.java              # Association Salle <-> Équipement
-│   ├── Matiere.java                      # Discipline enseignée
-│   ├── MatiereClasseConfig.java          # Volume horaire et période obligatoire d'une matière pour une classe
+│   ├── Matiere.java                      # Discipline
+│   ├── MatiereClasseConfig.java          # Volume horaire, période, typeSalleRequis et prioriteMatin pour une classe
 │   ├── PlageHoraire.java                 # Plage horaire préférée prof
 │   ├── Professeur.java                   # Enseignant (quotas heures max/jour, max/semaine, max/séance)
 │   ├── ProfesseurDayOff.java             # Jour de repos enseignant (0=Lundi..4=Vendredi)
+│   ├── ProfesseurIndisponibilite.java    # Indisponibilités horaires fines (jour, heureDebut, heureFin)
 │   ├── Salle.java                        # Salle de cours avec code, capacité, type
-│   ├── Seance.java                       # @PlanningEntity avec variables debut, salle, professeur, et fin calculée
+│   ├── Seance.java                       # @PlanningEntity (debut, salle, professeur, alignementId, typeSalleRequis)
 │   ├── SemaineType.java                  # Enum SEMAINE_1, SEMAINE_2, SEMAINE_3
-│   ├── TeacherClassWork.java             # Objet utilitaire Timefold pour calculs de charge prof/classe
+│   ├── TeacherClassWork.java             # Objet utilitaire Timefold pour calculs en minutes de charge prof/classe
 │   └── Vacances.java                     # Plage de dates de vacances scolaires
 └── service/
     └── PlanningService.java              # Orchestration, génération dates/séances, sauvegarde
@@ -105,12 +106,13 @@ src/main/java/fr/manaken/plannif/
 ### Entités & Variables
 1. **Planning Solution** : `Planning`
    - Score type : `HardSoftScore` (pénalités Hard pour les impossibilités strictes, Soft pour le confort/optimisation).
+   - Configuration centralisée de score : `@ConstraintConfigurationProvider PlanningConstraintConfiguration constraintConfiguration` (permettant la surcharge dynamique des poids sans recompilation).
    - `@PlanningEntityCollectionProperty` : `List<Seance> seances`
    - `@ProblemFactCollectionProperty` & `@ValueRangeProvider` :
-     - `datesDebutPossibles` (id: `"dateDebutRange"`) : `List<LocalDateTime>` représentant tous les horaires de début de séance admissibles
+     - `datesDebutPossibles` (id: `"dateDebutRange"`) : `List<LocalDateTime>`
      - `salles` (id: `"salleRange"`)
      - `professeurs` (id: `"professeurRange"`)
-   - Autres Facts : `classes`, `matieres`, `professeurDayOffs`, `classePresences`, `matiereClasseConfigs`, `vacances`.
+   - Autres Facts : `classes`, `matieres`, `professeurDayOffs`, `professeurIndisponibilites`, `distanceSalles`, `classePresences`, `matiereClasseConfigs`, `vacances`.
 
 2. **Planning Entity** : `Seance`
    - Clé de planning : `@PlanningId Long id`
@@ -120,39 +122,52 @@ src/main/java/fr/manaken/plannif/
      - `@PlanningVariable(valueRangeProviderRefs = "professeurRange") Professeur professeur`
    - Attributs calculés / fixes :
      - `fin` : calculé automatiquement à partir de `debut` et de la durée (`debut.plusMinutes(getDureeMinutes())`)
-     - `dureeMinutes` : 90 min pour `TP`, 60 min pour les autres types (`COURS`, `EXAMEN`, `VIE_DE_CLASSE`)
+     - `dureeMinutes` / `dureeAttendueMinutes` : 90 min pour `TP`, 60 min pour les autres types (ou durée paramétrable personnalisée)
+     - `typeSalleRequis` : type de salle attendu (direct ou hérité de `MatiereClasseConfig`)
+     - `alignementId` : identifiant d'alignement pour synchronisation de groupes/options
      - `classe`, `matiere`, `type`
 
 ---
 
 ## 5. 📏 Catalogue Complet des Contraintes (`PlanningConstraints`)
 
-Le solver évalue **17 contraintes** (9 Hard, 8 Soft) :
+Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `PlanningConstraintConfiguration` avec calculs optimisés en `long` minutes :
 
-### 🔴 Contraintes Strictes (Hard Constraints - 1 Hard point par violation)
+### 🔴 Contraintes Strictes (Hard Constraints)
 | # | Nom | Méthode | Règle / Description |
 |---|---|---|---|
-| 1 | **Room Conflict** | `roomConflict` | Pas de chevauchement temporel de deux séances dans la même salle (`s1.debut < s2.fin && s1.fin > s2.debut`). |
+| 1 | **Room Conflict** | `roomConflict` | Pas de chevauchement temporel de deux séances dans la même salle. |
 | 2 | **Teacher Conflict** | `teacherConflict` | Un même enseignant ne peut pas animer deux séances en même temps. |
 | 3 | **Student Group Conflict** | `studentGroupConflict` | Une même classe ne peut pas avoir deux séances simultanées. |
-| 4 | **Student Group Presence** | `studentGroupPresence` | Toute séance d'une classe doit obligatoirement tomber dans une période où la classe est présente (`ClassePresence`). |
-| 5 | **Teacher Must Be Qualified** | `teacherMustBeQualified` | Le professeur assigné à la séance doit avoir la matière dans ses compétences (`prof.getMatieres().contains(matiere)`). Exception pour `VIE_DE_CLASSE`. |
-| 6 | **Subject Class Period** | `subjectClassPeriodConstraint` | Si un module a une plage de dates définie dans `MatiereClasseConfig`, la séance doit être comprise entre `dateDebut` et `dateFin`. |
-| 7 | **Holiday Conflict** | `holidayConflict` | Aucune séance ne peut avoir lieu pendant une période de vacances (`Vacances`). |
-| 8 | **Vie de Classe Timing** | `vieDeClasseTimingConstraint` | Une séance `VIE_DE_CLASSE` doit obligatoirement être placée soit sur le **premier jour (09h00 - 10h00)**, soit sur le **dernier jour (10h00 - 11h00)** de la période de présence (permettant le placement conjoint d'une séance le premier jour ET d'une séance le dernier jour). |
-| 9 | **Seance Type & Duration Match** | `seanceTypeDurationMatch` | Une séance de type `TP` doit durer exactement **90 minutes**, les autres types ne doivent pas durer 90 minutes (séances standard 1h). |
+| 4 | **Student Group Presence** | `studentGroupPresence` | Toute séance d'une classe doit tomber dans sa période de présence (`ClassePresence`). |
+| 5 | **Teacher Must Be Qualified** | `teacherMustBeQualified` | Le professeur assigné doit avoir la matière dans ses compétences. |
+| 6 | **Subject Class Period** | `subjectClassPeriodConstraint` | La séance doit respecter la plage de dates définie dans `MatiereClasseConfig`. |
+| 7 | **Holiday Conflict** | `holidayConflict` | Aucune séance ne peut avoir lieu pendant les vacances (`Vacances`). |
+| 8 | **Vie de Classe Timing** | `vieDeClasseTimingConstraint` | Une séance `VIE_DE_CLASSE` doit être placée soit sur le 1er jour (9h-10h), soit sur le dernier jour (10h-11h). |
+| 9 | **Seance Type & Duration Match** | `seanceTypeDurationMatch` | Vérifie la correspondance exacte entre la durée réelle de la séance et sa durée attendue (`dureeAttendueMinutes` ou par défaut 90 min pour TP, 60 min sinon). |
+| 10 | **Room Capacity** | `roomCapacity` | L'effectif de la classe (`classe.getEffectif()`) ne doit pas dépasser la capacité de la salle (`salle.getCapacite()`). Pénalité proportionnelle au dépassement. |
+| 11 | **Room Equipment & Type Match** | `roomEquipmentMatch` | La salle assignée doit correspondre au type de salle requis (`typeSalleRequis` de la séance ou de `MatiereClasseConfig`). |
+| 12 | **Teacher Unavailability** | `teacherUnavailability` | Interdit la planification d'un professeur pendant ses indisponibilités fines (`ProfesseurIndisponibilite`). |
+| 13 | **Aligned Sessions** | `alignedSessions` | Deux séances partageant le même `alignementId` doivent obligatoirement commencer sur le même créneau horaire. |
 
-### 🟡 Contraintes Souples (Soft Constraints - 1 Soft point par violation)
+### 🟡 Contraintes Souples (Soft Constraints)
 | # | Nom | Méthode | Règle / Description |
 |---|---|---|---|
-| 1 | **Teacher Day Off** | `teacherDayOff` | Ne pas planifier un professeur sur son jour de congé hebdomadaire (`ProfesseurDayOff`, 0=Lundi..4=Vendredi). |
-| 2 | **Teacher Max Hours / Day** | `teacherMaxHoursPerDay` | Ne pas dépasser le quota d'heures par jour du professeur (`maxHeuresParJour`). |
-| 3 | **Teacher Max Hours / Week** | `teacherMaxHoursPerWeek` | Ne pas dépasser le quota d'heures par semaine du professeur (`maxHeuresParSemaine`). |
-| 4 | **Teacher Max Hours / Session** | `teacherMaxHoursPerSession` | Ne pas dépasser la durée max par séance du professeur (`maxHeuresParSeance`). |
-| 5 | **Teacher-Class 2-Days Limit** | `teacherClassMaxHoursConsecutive` | Un professeur ne doit pas donner plus de 5 heures de cours à une même classe sur 2 jours consécutifs. |
-| 6 | **Teacher Max Gap** | `teacherMaxGap` | Éviter les trous de plus de 2 heures (120 min) dans l'emploi du temps d'une même journée pour un professeur. |
-| 7 | **Max Sessions / Day / Subject** | `subjectClassMaxSessionsPerDay` | Maximum 1 séance d'une même matière par jour pour une classe donnée. |
-| 8 | **Subject Class Spreading** | `subjectClassSpreading` | Éviter de planifier la même matière deux jours consécutifs (distance <= 1 jour) pour favoriser l'espacement pédagogique. |
+| 1 | **Teacher Day Off** | `teacherDayOff` | Ne pas planifier un professeur sur son jour de congé hebdomadaire. |
+| 2 | **Teacher Max Hours / Day** | `teacherMaxHoursPerDay` | Pénalité proportionnelle en minutes au dépassement du quota journalier de l'enseignant. |
+| 3 | **Teacher Max Hours / Week** | `teacherMaxHoursPerWeek` | Pénalité proportionnelle en minutes au dépassement du quota hebdomadaire de l'enseignant. |
+| 4 | **Teacher Max Hours / Session** | `teacherMaxHoursPerSession` | Pénalité proportionnelle en minutes au dépassement de la durée max d'une séance pour l'enseignant. |
+| 5 | **Teacher-Class 2-Days Limit** | `teacherClassMaxHoursOverTwoDays` | Limite à 5h (300 min) le volume d'enseignement pour une classe sur 2 jours consécutifs (pénalité proportionnelle). |
+| 6 | **Teacher Max Gap** | `teacherMaxGap` | Évite les trous de plus de 2 heures (120 min) pour un enseignant (pénalité proportionnelle au temps excédentaire). |
+| 7 | **Teacher Lunch Break** | `teacherLunchBreak` | Garantit au moins 45 minutes de pause repas pour l'enseignant entre 11h30 et 14h00. |
+| 8 | **Teacher Travel Distance** | `teacherTravelDistance` | Pénalise l'enchaînement immédiat de deux cours dans des bâtiments distants (> 200m via `DistanceSalle`). |
+| 9 | **Student Lunch Break** | `studentLunchBreak` | Garantit au moins 60 minutes de pause méridienne pour chaque classe entre 11h30 et 14h00 (pénalité proportionnelle au déficit). |
+| 10 | **Student Max Hours / Day** | `studentMaxHoursPerDay` | Plafonne à 7h (420 min) le volume journalier de cours pour les élèves. |
+| 11 | **Student Max Gap** | `studentMaxGap` | Minimise les heures creuses au milieu de la journée de la classe (hors pause déjeuner). |
+| 12 | **Max Sessions / Day / Subject** | `subjectClassMaxSessionsPerDay` | Maximum 1 séance d'une même matière par jour pour une classe donnée. |
+| 13 | **Subject Class Spreading** | `subjectClassSpreading` | Évite de planifier la même matière deux jours consécutifs pour favoriser l'espacement pédagogique. |
+| 14 | **High Cognitive Load** | `highCognitiveLoad` | Privilégie le matin (avant 12h30) pour les matières à forte charge cognitive (`MatiereClasseConfig.prioriteMatin == true`). |
+| 15 | **Session Pairing** | `sessionPairing` | Favorise le regroupement de deux séances d'1h en bloc continu de 2h le même jour plutôt que de les éclater. |
 
 ---
 
@@ -160,7 +175,7 @@ Le solver évalue **17 contraintes** (9 Hard, 8 Soft) :
 
 ### 1. `buildPlanning()`
 - Appelle `PlannifDataApiClient` pour récupérer l'ensemble des données de référence.
-- Initialise les listes de relations bidirectionnelles (`ClassePresence`, `ProfesseurDayOff`, `Vacances`).
+- Initialise les listes de relations bidirectionnelles (`ClassePresence`, `ProfesseurDayOff`, `ProfesseurIndisponibilite`, `Vacances`, `DistanceSalle`).
 - Ré-associe en mémoire les objets référencés par ID (`Classe`, `Professeur`, `Matiere`, `Salle`).
 - Récupère les débuts candidats si disponibles depuis l'API ou génère les dates de début possibles dans `Planning.datesDebutPossibles`.
 
@@ -185,8 +200,8 @@ Le solver évalue **17 contraintes** (9 Hard, 8 Soft) :
 
 ## 7. 🧪 Suite de Tests & Qualité
 
-La suite comprend **39 tests unitaires et d'intégration** (tous au vert) :
-- `ConstraintVerifierTest` (14 tests) : Teste isolément chaque contrainte Timefold via `ConstraintVerifier`.
+La suite comprend désormais **53 tests unitaires et d'intégration** (tous au vert) :
+- `ConstraintVerifierTest` (**28 tests**) : Validation isolée de chaque contrainte Timefold (anciennes et nouvelles) et validation de la configuration dynamique des poids.
 - `AdvancedSolverTest` (4 tests) : Validation du calcul de score et détection des conflits (salle, prof, présence classe).
 - `SolverTest` (1 test) : Test d'intégration de résolution complète avec assertion sur la faisabilité (`isFeasible() == true`).
 - `PlanningControllerTest` (5 tests) : Test de l'orchestration globale, chargement de scénarios JSON, génération dynamique, persistance et propagation de la date/heure de fin (`fin`), et export Gantt HTML.

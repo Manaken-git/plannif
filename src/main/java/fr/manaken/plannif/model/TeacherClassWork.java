@@ -1,6 +1,7 @@
 package fr.manaken.plannif.model;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Objects;
 
@@ -8,13 +9,20 @@ public class TeacherClassWork {
     private final Professeur professeur;
     private final Classe classe;
     private final LocalDate date;
-    private final BigDecimal hours;
+    private final long minutes;
+
+    public TeacherClassWork(Professeur professeur, Classe classe, LocalDate date, long minutes) {
+        this.professeur = professeur;
+        this.classe = classe;
+        this.date = date;
+        this.minutes = minutes;
+    }
 
     public TeacherClassWork(Professeur professeur, Classe classe, LocalDate date, BigDecimal hours) {
         this.professeur = professeur;
         this.classe = classe;
         this.date = date;
-        this.hours = hours;
+        this.minutes = hours != null ? hours.multiply(BigDecimal.valueOf(60)).longValue() : 0L;
     }
 
     public Professeur getProfesseur() {
@@ -29,8 +37,12 @@ public class TeacherClassWork {
         return date;
     }
 
+    public long getMinutes() {
+        return minutes;
+    }
+
     public BigDecimal getHours() {
-        return hours;
+        return BigDecimal.valueOf(minutes).divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
     }
 
     @Override
@@ -40,13 +52,14 @@ public class TeacherClassWork {
         if (o == null || getClass() != o.getClass())
             return false;
         TeacherClassWork that = (TeacherClassWork) o;
-        return Objects.equals(professeur, that.professeur) && Objects.equals(classe, that.classe)
-                && Objects.equals(date, that.date)
-                && (hours == null ? that.hours == null : (that.hours != null && hours.compareTo(that.hours) == 0));
+        return minutes == that.minutes
+                && Objects.equals(professeur, that.professeur)
+                && Objects.equals(classe, that.classe)
+                && Objects.equals(date, that.date);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(professeur, classe, date, hours == null ? 0 : hours.stripTrailingZeros());
+        return Objects.hash(professeur, classe, date, minutes);
     }
 }

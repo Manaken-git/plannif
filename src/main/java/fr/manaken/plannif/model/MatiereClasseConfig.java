@@ -34,4 +34,7 @@ public class MatiereClasseConfig {
     private LocalDate dateDebut;
     private LocalDate dateFin;
     private Long volumeHorairePeriode;
+
+    private String typeSalleRequis;
+    private Boolean prioriteMatin;
 }
