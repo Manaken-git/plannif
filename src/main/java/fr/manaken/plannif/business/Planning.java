@@ -17,6 +17,7 @@ import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import ai.timefold.solver.core.api.domain.solution.ConstraintWeightOverrides;
 import java.util.Map;
 
 @PlanningSolution
@@ -29,8 +30,7 @@ public class Planning {
     private String nom;
     private LocalDateTime dateCreation;
 
-    @ai.timefold.solver.core.api.domain.constraintweight.ConstraintConfigurationProvider
-    private PlanningConstraintConfiguration constraintConfiguration = new PlanningConstraintConfiguration();
+    private ConstraintWeightOverrides<HardSoftScore> constraintWeightOverrides = ConstraintWeightOverrides.none();
 
     @PlanningEntityCollectionProperty
     private List<Seance> seances = new java.util.ArrayList<>();

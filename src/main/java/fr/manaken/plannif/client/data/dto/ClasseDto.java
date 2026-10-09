@@ -14,5 +14,6 @@ import java.util.List;
 public class ClasseDto {
     private Long id;
     private String nom;
+    private Integer effectif;
     private List<ClassePresenceDto> presences;
 }

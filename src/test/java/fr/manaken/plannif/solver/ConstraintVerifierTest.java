@@ -2,6 +2,7 @@ package fr.manaken.plannif.solver;
 
 import ai.timefold.solver.test.api.score.stream.ConstraintVerifier;
 import fr.manaken.plannif.business.Planning;
+import fr.manaken.plannif.business.PlanningConstraintConfiguration;
 import fr.manaken.plannif.business.PlanningConstraints;
 import fr.manaken.plannif.model.*;
 import org.junit.jupiter.api.Test;
@@ -861,7 +862,11 @@ class ConstraintVerifierTest {
         problem.getProfesseurs().addAll(List.of(prof1, prof2));
 
         // Adjust room conflict weight to 5 Hard. The constraint match count is 1, producing -5hard score.
-        problem.getConstraintConfiguration().setRoomConflict(ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore.ofHard(5));
+        problem.setConstraintWeightOverrides(
+                ai.timefold.solver.core.api.domain.solution.ConstraintWeightOverrides.of(
+                        java.util.Map.of(PlanningConstraintConfiguration.ROOM_CONFLICT, ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore.ofHard(5))
+                )
+        );
 
         constraintVerifier.verifyThat(PlanningConstraints::roomConflict)
                 .givenSolution(problem)

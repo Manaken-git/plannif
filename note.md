@@ -106,7 +106,7 @@ src/main/java/fr/manaken/plannif/
 ### Entités & Variables
 1. **Planning Solution** : `Planning`
    - Score type : `HardSoftScore` (pénalités Hard pour les impossibilités strictes, Soft pour le confort/optimisation).
-   - Configuration centralisée de score : `@ConstraintConfigurationProvider PlanningConstraintConfiguration constraintConfiguration` (permettant la surcharge dynamique des poids sans recompilation).
+   - Surcharge dynamique des poids : `ConstraintWeightOverrides<HardSoftScore> constraintWeightOverrides` (Timefold moderne).
    - `@PlanningEntityCollectionProperty` : `List<Seance> seances`
    - `@ProblemFactCollectionProperty` & `@ValueRangeProvider` :
      - `datesDebutPossibles` (id: `"dateDebutRange"`) : `List<LocalDateTime>`

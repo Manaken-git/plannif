@@ -30,7 +30,7 @@ public class Classe {
         if (eleves != null && !eleves.isEmpty()) {
             return eleves.size();
         }
-        return 30;
+        return 0;
     }
 
     

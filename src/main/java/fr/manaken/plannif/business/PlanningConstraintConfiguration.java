@@ -1,15 +1,10 @@
 package fr.manaken.plannif.business;
 
-import ai.timefold.solver.core.api.domain.constraintweight.ConstraintConfiguration;
-import ai.timefold.solver.core.api.domain.constraintweight.ConstraintWeight;
-import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
-import lombok.Getter;
-import lombok.Setter;
+public final class PlanningConstraintConfiguration {
 
-@Getter
-@Setter
-@ConstraintConfiguration(constraintPackage = "fr.manaken.plannif.business")
-public class PlanningConstraintConfiguration {
+    private PlanningConstraintConfiguration() {
+        // Utility class
+    }
 
     // Contraintes existantes / Refactorisées
     public static final String ROOM_CONFLICT = "Room conflict";
@@ -49,89 +44,4 @@ public class PlanningConstraintConfiguration {
     // Phase 6: Pédagogique
     public static final String HIGH_COGNITIVE_LOAD = "High cognitive load morning preference";
     public static final String SESSION_PAIRING = "Session pairing 2h block preference";
-
-    // Poids des contraintes
-    @ConstraintWeight(ROOM_CONFLICT)
-    private HardSoftScore roomConflict = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(TEACHER_CONFLICT)
-    private HardSoftScore teacherConflict = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(STUDENT_GROUP_CONFLICT)
-    private HardSoftScore studentGroupConflict = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(STUDENT_GROUP_PRESENCE)
-    private HardSoftScore studentGroupPresence = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(TEACHER_MUST_BE_QUALIFIED)
-    private HardSoftScore teacherMustBeQualified = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(SUBJECT_CLASS_PERIOD)
-    private HardSoftScore subjectClassPeriod = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(HOLIDAY_CONFLICT)
-    private HardSoftScore holidayConflict = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(VIE_DE_CLASSE_TIMING)
-    private HardSoftScore vieDeClasseTiming = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(SEANCE_TYPE_DURATION_MATCH)
-    private HardSoftScore seanceTypeDurationMatch = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(TEACHER_DAY_OFF)
-    private HardSoftScore teacherDayOff = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(TEACHER_MAX_HOURS_PER_DAY)
-    private HardSoftScore teacherMaxHoursPerDay = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(TEACHER_MAX_HOURS_PER_WEEK)
-    private HardSoftScore teacherMaxHoursPerWeek = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(TEACHER_MAX_HOURS_PER_SESSION)
-    private HardSoftScore teacherMaxHoursPerSession = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(TEACHER_CLASS_MAX_HOURS_OVER_TWO_DAYS)
-    private HardSoftScore teacherClassMaxHoursOverTwoDays = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(TEACHER_MAX_GAP)
-    private HardSoftScore teacherMaxGap = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(SUBJECT_CLASS_MAX_SESSIONS_PER_DAY)
-    private HardSoftScore subjectClassMaxSessionsPerDay = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(SUBJECT_CLASS_SPREADING)
-    private HardSoftScore subjectClassSpreading = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(ROOM_CAPACITY)
-    private HardSoftScore roomCapacity = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(ROOM_EQUIPMENT_MATCH)
-    private HardSoftScore roomEquipmentMatch = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(STUDENT_LUNCH_BREAK)
-    private HardSoftScore studentLunchBreak = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(STUDENT_MAX_HOURS_PER_DAY)
-    private HardSoftScore studentMaxHoursPerDay = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(STUDENT_MAX_GAP)
-    private HardSoftScore studentMaxGap = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(ALIGNED_SESSIONS)
-    private HardSoftScore alignedSessions = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(TEACHER_LUNCH_BREAK)
-    private HardSoftScore teacherLunchBreak = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(TEACHER_UNAVAILABILITY)
-    private HardSoftScore teacherUnavailability = HardSoftScore.ONE_HARD;
-
-    @ConstraintWeight(TEACHER_TRAVEL_DISTANCE)
-    private HardSoftScore teacherTravelDistance = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(HIGH_COGNITIVE_LOAD)
-    private HardSoftScore highCognitiveLoad = HardSoftScore.ONE_SOFT;
-
-    @ConstraintWeight(SESSION_PAIRING)
-    private HardSoftScore sessionPairing = HardSoftScore.ONE_SOFT;
 }

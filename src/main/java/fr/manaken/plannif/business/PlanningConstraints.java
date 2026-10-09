@@ -1,5 +1,6 @@
 package fr.manaken.plannif.business;
 
+import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.score.stream.Constraint;
 import ai.timefold.solver.core.api.score.stream.ConstraintCollectors;
 import ai.timefold.solver.core.api.score.stream.ConstraintFactory;
@@ -79,7 +80,7 @@ public class PlanningConstraints implements ConstraintProvider {
         return factory.forEach(Seance.class)
                 .filter(seance -> seance.getDebut() != null && seance.getFin() != null)
                 .filter(seance -> seance.getActualDurationMinutes() != seance.getExpectedDurationMinutes())
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(SEANCE_TYPE_DURATION_MATCH);
     }
 
@@ -91,7 +92,7 @@ public class PlanningConstraints implements ConstraintProvider {
                             LocalDate date = seance.getDebut().toLocalDate();
                             return !date.isBefore(vacance.getDateDebut()) && !date.isAfter(vacance.getDateFin());
                         }))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(HOLIDAY_CONFLICT);
     }
 
@@ -105,7 +106,7 @@ public class PlanningConstraints implements ConstraintProvider {
                     LocalDate date = seance.getDebut().toLocalDate();
                     return date.isBefore(config.getDateDebut()) || date.isAfter(config.getDateFin());
                 })
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(SUBJECT_CLASS_PERIOD);
     }
 
@@ -118,7 +119,7 @@ public class PlanningConstraints implements ConstraintProvider {
                             LocalDate date = seance.getDebut().toLocalDate();
                             return !date.isBefore(presence.getDateDebut()) && !date.isAfter(presence.getDateFin());
                         }))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(STUDENT_GROUP_PRESENCE);
     }
 
@@ -127,7 +128,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .filter(seance -> seance.getProfesseur() != null
                         && seance.getType() != Seance.TypeSeance.VIE_DE_CLASSE
                         && !seance.getProfesseur().getMatieres().contains(seance.getMatiere()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(TEACHER_MUST_BE_QUALIFIED);
     }
 
@@ -145,7 +146,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         equal(TeacherClassWork::getClasse, TeacherClassWork::getClasse),
                         equal(w -> w.getDate().plusDays(1), TeacherClassWork::getDate))
                 .filter((w1, w2) -> (w1.getMinutes() + w2.getMinutes()) > 300)
-                .penalizeConfigurable((w1, w2) -> (int) ((w1.getMinutes() + w2.getMinutes()) - 300))
+                .penalize(HardSoftScore.ONE_SOFT, (w1, w2) -> (int) ((w1.getMinutes() + w2.getMinutes()) - 300))
                 .asConstraint(TEACHER_CLASS_MAX_HOURS_OVER_TWO_DAYS);
     }
 
@@ -161,7 +162,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         ConstraintCollectors.sumLong(this::getDurationInMinutes))
                 .filter((prof, date, totalMinutes) -> prof.getMaxMinutesParJour() != null
                         && totalMinutes > prof.getMaxMinutesParJour())
-                .penalizeConfigurable((prof, date, totalMinutes) -> (int) (totalMinutes - prof.getMaxMinutesParJour()))
+                .penalize(HardSoftScore.ONE_SOFT, (prof, date, totalMinutes) -> (int) (totalMinutes - prof.getMaxMinutesParJour()))
                 .asConstraint(TEACHER_MAX_HOURS_PER_DAY);
     }
 
@@ -174,7 +175,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         ConstraintCollectors.sumLong(this::getDurationInMinutes))
                 .filter((prof, week, totalMinutes) -> prof.getMaxMinutesParSemaine() != null
                         && totalMinutes > prof.getMaxMinutesParSemaine())
-                .penalizeConfigurable((prof, week, totalMinutes) -> (int) (totalMinutes - prof.getMaxMinutesParSemaine()))
+                .penalize(HardSoftScore.ONE_SOFT, (prof, week, totalMinutes) -> (int) (totalMinutes - prof.getMaxMinutesParSemaine()))
                 .asConstraint(TEACHER_MAX_HOURS_PER_WEEK);
     }
 
@@ -186,7 +187,7 @@ public class PlanningConstraints implements ConstraintProvider {
                     return seance.getProfesseur().getMaxMinutesParSeance() != null
                             && duration > seance.getProfesseur().getMaxMinutesParSeance();
                 })
-                .penalizeConfigurable(seance -> (int) (getDurationInMinutes(seance) - seance.getProfesseur().getMaxMinutesParSeance()))
+                .penalize(HardSoftScore.ONE_SOFT, seance -> (int) (getDurationInMinutes(seance) - seance.getProfesseur().getMaxMinutesParSeance()))
                 .asConstraint(TEACHER_MAX_HOURS_PER_SESSION);
     }
 
@@ -203,7 +204,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .join(ProfesseurDayOff.class,
                         equal(Seance::getProfesseur, ProfesseurDayOff::getProfesseur))
                 .filter((seance, dayOff) -> seance.getDebut().getDayOfWeek().getValue() - 1 == dayOff.getDayOfWeek())
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(TEACHER_DAY_OFF);
     }
 
@@ -217,7 +218,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         && s2.getDebut() != null && s2.getFin() != null
                         && s1.getDebut().isBefore(s2.getFin())
                         && s1.getFin().isAfter(s2.getDebut()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(ROOM_CONFLICT);
     }
 
@@ -231,7 +232,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         && s2.getDebut() != null && s2.getFin() != null
                         && s1.getDebut().isBefore(s2.getFin())
                         && s1.getFin().isAfter(s2.getDebut()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(TEACHER_CONFLICT);
     }
 
@@ -245,7 +246,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         && s2.getDebut() != null && s2.getFin() != null
                         && s1.getDebut().isBefore(s2.getFin())
                         && s1.getFin().isAfter(s2.getDebut()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(STUDENT_GROUP_CONFLICT);
     }
 
@@ -262,7 +263,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
                 .filter((s1, s2) -> ChronoUnit.MINUTES.between(s1.getFin(),
                         s2.getDebut()) > 120)
-                .penalizeConfigurable((s1, s2) -> (int) (ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()) - 120))
+                .penalize(HardSoftScore.ONE_SOFT, (s1, s2) -> (int) (ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()) - 120))
                 .asConstraint(TEACHER_MAX_GAP);
     }
 
@@ -274,7 +275,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         seance -> seance.getDebut().toLocalDate(),
                         ConstraintCollectors.count())
                 .filter((classe, matiere, date, count) -> count > 1)
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(SUBJECT_CLASS_MAX_SESSIONS_PER_DAY);
     }
 
@@ -291,7 +292,7 @@ public class PlanningConstraints implements ConstraintProvider {
                             s2.getDebut().toLocalDate()));
                     return days <= 1;
                 })
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(SUBJECT_CLASS_SPREADING);
     }
 
@@ -301,7 +302,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .ifNotExists(ClassePresence.class,
                         equal(Seance::getClasse, ClassePresence::getClasse),
                         filtering((seance, presence) -> presence.isValidVieDeClasse(seance.getDebut(), seance.getFin())))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(VIE_DE_CLASSE_TIMING);
     }
 
@@ -312,9 +313,9 @@ public class PlanningConstraints implements ConstraintProvider {
     public Constraint roomCapacity(ConstraintFactory factory) {
         return factory.forEach(Seance.class)
                 .filter(seance -> seance.getSalle() != null && seance.getClasse() != null
-                        && seance.getSalle().getCapacite() != null
-                        && seance.getClasse().getEffectif() > seance.getSalle().getCapacite())
-                .penalizeConfigurable(seance -> seance.getClasse().getEffectif() - seance.getSalle().getCapacite())
+                && seance.getSalle().getCapacite() != null
+                && seance.getClasse().getEffectif() > seance.getSalle().getCapacite())
+                .penalize(HardSoftScore.ONE_HARD, seance -> seance.getClasse().getEffectif() - seance.getSalle().getCapacite())
                 .asConstraint(ROOM_CAPACITY);
     }
 
@@ -334,7 +335,7 @@ public class PlanningConstraints implements ConstraintProvider {
                     return seance.getSalle().getType() == null
                             || !requiredType.equalsIgnoreCase(seance.getSalle().getType());
                 })
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(ROOM_EQUIPMENT_MATCH);
     }
 
@@ -359,7 +360,7 @@ public class PlanningConstraints implements ConstraintProvider {
                     return f1.isAfter(LocalTime.of(12, 0)) && d2.isBefore(LocalTime.of(13, 30))
                             && ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()) < 60;
                 })
-                .penalizeConfigurable((s1, s2) -> (int) (60 - ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut())))
+                .penalize(HardSoftScore.ONE_SOFT, (s1, s2) -> (int) (60 - ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut())))
                 .asConstraint(STUDENT_LUNCH_BREAK);
     }
 
@@ -370,7 +371,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         seance -> seance.getDebut().toLocalDate(),
                         ConstraintCollectors.sumLong(this::getDurationInMinutes))
                 .filter((classe, date, totalMinutes) -> totalMinutes > 420) // max 7h/jour
-                .penalizeConfigurable((classe, date, totalMinutes) -> (int) (totalMinutes - 420))
+                .penalize(HardSoftScore.ONE_SOFT, (classe, date, totalMinutes) -> (int) (totalMinutes - 420))
                 .asConstraint(STUDENT_MAX_HOURS_PER_DAY);
     }
 
@@ -392,7 +393,7 @@ public class PlanningConstraints implements ConstraintProvider {
                             && gap <= 120;
                     return gap > 0 && !isLunchGap;
                 })
-                .penalizeConfigurable((s1, s2) -> (int) ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()))
+                .penalize(HardSoftScore.ONE_SOFT, (s1, s2) -> (int) ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()))
                 .asConstraint(STUDENT_MAX_GAP);
     }
 
@@ -403,7 +404,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         equal(Seance::getAlignementId),
                         lessThan(Seance::getId))
                 .filter((s1, s2) -> s2.getDebut() != null && !s1.getDebut().equals(s2.getDebut()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(ALIGNED_SESSIONS);
     }
 
@@ -428,7 +429,7 @@ public class PlanningConstraints implements ConstraintProvider {
                     return f1.isAfter(LocalTime.of(12, 0)) && d2.isBefore(LocalTime.of(13, 30))
                             && ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()) < 45;
                 })
-                .penalizeConfigurable((s1, s2) -> (int) (45 - ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut())))
+                .penalize(HardSoftScore.ONE_SOFT, (s1, s2) -> (int) (45 - ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut())))
                 .asConstraint(TEACHER_LUNCH_BREAK);
     }
 
@@ -438,7 +439,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .join(ProfesseurIndisponibilite.class,
                         equal(Seance::getProfesseur, ProfesseurIndisponibilite::getProfesseur))
                 .filter((seance, indispo) -> indispo.matches(seance.getDebut(), seance.getFin()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(TEACHER_UNAVAILABILITY);
     }
 
@@ -456,7 +457,7 @@ public class PlanningConstraints implements ConstraintProvider {
                                 (dist.getSalle1().equals(s2.getSalle()) && dist.getSalle2().equals(s1.getSalle()))
                         ))
                 .filter((s1, s2, dist) -> dist.getDistance() != null && dist.getDistance() > 200)
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(TEACHER_TRAVEL_DISTANCE);
     }
 
@@ -472,7 +473,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         Joiners.equal(Seance::getMatiere, MatiereClasseConfig::getMatiere))
                 .filter((seance, config) -> Boolean.TRUE.equals(config.getPrioriteMatin())
                         && seance.getDebut().toLocalTime().isAfter(LocalTime.of(12, 30)))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(HIGH_COGNITIVE_LOAD);
     }
 
@@ -486,7 +487,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         lessThan(Seance::getId))
                 .filter((s1, s2) -> s1.getActualDurationMinutes() == 60 && s2.getActualDurationMinutes() == 60
                         && !s1.getFin().equals(s2.getDebut()) && !s2.getFin().equals(s1.getDebut()))
-                .penalizeConfigurable()
+                .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(SESSION_PAIRING);
     }
 }
