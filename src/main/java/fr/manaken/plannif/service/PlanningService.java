@@ -15,6 +15,7 @@ import fr.manaken.plannif.client.data.mapper.MatiereMapper;
 import fr.manaken.plannif.client.data.mapper.ProfesseurMapper;
 import fr.manaken.plannif.client.data.mapper.SalleMapper;
 import fr.manaken.plannif.client.data.mapper.SeanceMapper;
+import fr.manaken.plannif.client.data.mapper.EleveMapper;
 import fr.manaken.plannif.client.data.mapper.MatiereClasseConfigMapper;
 import fr.manaken.plannif.client.data.mapper.VacancesMapper;
 import fr.manaken.plannif.client.data.dto.PlanningDto;
@@ -42,6 +43,7 @@ public class PlanningService {
     private final SeanceMapper seanceMapper;
     private final MatiereClasseConfigMapper matiereClasseConfigMapper;
     private final VacancesMapper vacancesMapper;
+    private final EleveMapper eleveMapper;
 
     public PlanningService(PlannifDataApiClient plannifDataApiClient,
                            ClasseMapper classeMapper,
@@ -50,7 +52,8 @@ public class PlanningService {
                            SalleMapper salleMapper,
                            SeanceMapper seanceMapper,
                            MatiereClasseConfigMapper matiereClasseConfigMapper,
-                           VacancesMapper vacancesMapper) {
+                           VacancesMapper vacancesMapper,
+                           EleveMapper eleveMapper) {
         this.plannifDataApiClient = plannifDataApiClient;
         this.classeMapper = classeMapper;
         this.matiereMapper = matiereMapper;
@@ -59,6 +62,7 @@ public class PlanningService {
         this.seanceMapper = seanceMapper;
         this.matiereClasseConfigMapper = matiereClasseConfigMapper;
         this.vacancesMapper = vacancesMapper;
+        this.eleveMapper = eleveMapper;
     }
 
     public Planning buildPlanning() {
@@ -139,7 +143,25 @@ public class PlanningService {
 
         linkPresenceContext(planning);
 
+        List<Eleve> eleves = new ArrayList<>();
+        try {
+            List<fr.manaken.plannif.client.data.dto.EleveDto> eleveDtos = plannifDataApiClient.getEleves();
+            if (eleveDtos != null && !eleveDtos.isEmpty()) {
+                eleves = eleveMapper.toEntityList(eleveDtos);
+            }
+        } catch (Exception ignored) {
+        }
+
         Map<Long, Classe> classeMap = classes.stream().collect(Collectors.toMap(Classe::getId, c -> c, (a, b) -> a));
+        for (Eleve el : eleves) {
+            if (el.getClasse() != null && el.getClasse().getId() != null) {
+                Classe c = classeMap.get(el.getClasse().getId());
+                if (c != null) {
+                    el.setClasse(c);
+                    c.getEleves().add(el);
+                }
+            }
+        }
         Map<Long, Professeur> profMap = professeurs.stream().collect(Collectors.toMap(Professeur::getId, p -> p, (a, b) -> a));
         Map<Long, Matiere> matiereMap = matieres.stream().collect(Collectors.toMap(Matiere::getId, m -> m, (a, b) -> a));
         Map<Long, Salle> salleMap = salles.stream().collect(Collectors.toMap(Salle::getId, s -> s, (a, b) -> a));
@@ -217,6 +239,7 @@ public class PlanningService {
                     seance.setId(seanceId++);
                     seance.setClasse(classe);
                     seance.setMatiere(matiere);
+                    seance.setType(Seance.TypeSeance.COURS);
                     generatedSeances.add(seance);
                 }
             }

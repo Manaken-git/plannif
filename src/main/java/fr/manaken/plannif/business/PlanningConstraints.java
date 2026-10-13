@@ -314,8 +314,9 @@ public class PlanningConstraints implements ConstraintProvider {
         return factory.forEach(Seance.class)
                 .filter(seance -> seance.getSalle() != null && seance.getClasse() != null
                 && seance.getSalle().getCapacite() != null
-                && seance.getClasse().getEffectif() > seance.getSalle().getCapacite())
-                .penalize(HardSoftScore.ONE_HARD, seance -> seance.getClasse().getEffectif() - seance.getSalle().getCapacite())
+                && seance.getClasse().getEleves() != null
+                && seance.getClasse().getEleves().size() > seance.getSalle().getCapacite())
+                .penalize(HardSoftScore.ONE_HARD, seance -> seance.getClasse().getEleves().size() - seance.getSalle().getCapacite())
                 .asConstraint(ROOM_CAPACITY);
     }
 

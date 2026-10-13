@@ -885,7 +885,12 @@ class ConstraintVerifierTest {
 
         Classe classe = new Classe();
         classe.setId(1L);
-        classe.setEffectif(30); // 30 > 25
+        for (long i = 1; i <= 30; i++) {
+            Eleve eleve = new Eleve();
+            eleve.setId(i);
+            eleve.setClasse(classe);
+            classe.getEleves().add(eleve);
+        }
 
         Seance s = new Seance();
         s.setId(1L);

@@ -1,5 +1,6 @@
 package fr.manaken.plannif.client.data.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,9 +12,9 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ClasseDto {
     private Long id;
     private String nom;
-    private Integer effectif;
     private List<ClassePresenceDto> presences;
 }

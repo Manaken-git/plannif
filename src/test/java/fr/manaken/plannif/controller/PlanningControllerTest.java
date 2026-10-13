@@ -111,7 +111,7 @@ class PlanningControllerTest {
     @Test
     void testGenerateCreneaux() {
         fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
-                null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null
         );
 
         Planning planning = new Planning();
@@ -137,7 +137,7 @@ class PlanningControllerTest {
     @Test
     void testGenerateVieDeClasseSeances() {
         fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
-                null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null
         );
 
         Planning planning = new Planning();
@@ -179,7 +179,7 @@ class PlanningControllerTest {
         fr.manaken.plannif.client.data.mapper.SeanceMapper seanceMapper = org.mapstruct.factory.Mappers.getMapper(fr.manaken.plannif.client.data.mapper.SeanceMapper.class);
 
         fr.manaken.plannif.service.PlanningService planningService = new fr.manaken.plannif.service.PlanningService(
-                mockClient, null, null, null, null, seanceMapper, null, null
+                mockClient, null, null, null, null, seanceMapper, null, null, null
         );
 
         Planning planning = new Planning();

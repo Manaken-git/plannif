@@ -1,5 +1,7 @@
 package fr.manaken.plannif.controller;
 
+import ai.timefold.solver.core.api.score.ScoreExplanation;
+import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import ai.timefold.solver.core.api.solver.Solver;
 import ai.timefold.solver.core.api.solver.SolverFactory;
@@ -14,7 +16,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/planning")
@@ -23,6 +27,7 @@ public class PlanningController {
 
     private final PlanningService planningService;
     private final long solverSpentLimitSeconds;
+    private volatile Planning lastSolution;
 
     public PlanningController(PlanningService planningService,
                               @Value("${planning.solver.spent-limit-seconds:120}") long solverSpentLimitSeconds) {
@@ -45,9 +50,11 @@ public class PlanningController {
     public Planning solve(@RequestBody Planning problem) {
         SolverFactory<Planning> solverFactory = getSolverFactory();
         Solver<Planning> solver = solverFactory.buildSolver();
+        problem = planningService.buildPlanning();
         planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
         Planning solution = solver.solve(problem);
+        this.lastSolution = solution;
         planningService.savePlanning(solution);
 
         // Explication du score dans la console
@@ -70,7 +77,7 @@ public class PlanningController {
         planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
         Planning solution = solver.solve(problem);
-        planningService.savePlanning(solution);
+        this.lastSolution = solution;
 
         // Explication du score dans la console
         var solutionManager = SolutionManager.create(solverFactory);
@@ -80,7 +87,49 @@ public class PlanningController {
         System.out.println(explanation.getSummary());
         System.out.println("=========================================================================");
 
+        planningService.savePlanning(solution);
         return solution;
+    }
+
+    @GetMapping("/score/explain")
+    public Map<String, Object> explainScore() {
+        Planning target = this.lastSolution;
+        if (target == null) {
+            target = solve();
+        }
+        return buildScoreExplanationMap(target);
+    }
+
+    @PostMapping("/score/explain")
+    public Map<String, Object> explainScore(@RequestBody Planning problem) {
+        return buildScoreExplanationMap(problem);
+    }
+
+    private Map<String, Object> buildScoreExplanationMap(Planning planning) {
+        SolverFactory<Planning> solverFactory = getSolverFactory();
+        SolutionManager<Planning, HardSoftScore> solutionManager = SolutionManager.create(solverFactory);
+        ScoreExplanation<Planning, HardSoftScore> explanation = solutionManager.explain(planning);
+
+        HardSoftScore score = explanation.getScore();
+        List<Map<String, Object>> matches = new ArrayList<>();
+
+        explanation.getConstraintMatchTotalMap();
+        for (var entry : explanation.getConstraintMatchTotalMap().values()) {
+            if (entry.getConstraintMatchCount() > 0) {
+                Map<String, Object> match = new HashMap<>();
+                match.put("constraintName", entry.getConstraintRef() != null ? entry.getConstraintRef().constraintName() : entry.getConstraintRef().constraintId());
+                match.put("score", entry.getScore() != null ? entry.getScore().toString() : "");
+                match.put("count", entry.getConstraintMatchCount());
+                matches.add(match);
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("hardScore", score != null ? score.hardScore() : 0);
+        result.put("softScore", score != null ? score.softScore() : 0);
+        result.put("summary", explanation.getSummary());
+        result.put("matches", matches);
+        return result;
     }
 
     @GetMapping("/solve-html")

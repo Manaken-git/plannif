@@ -66,11 +66,17 @@ public class Seance {
         return 60;
     }
 
+    public TypeSeance getType() {
+        return type != null ? type : TypeSeance.COURS;
+    }
+
     public long getActualDurationMinutes() {
-        if (this.debut == null || this.fin == null) {
+        java.time.LocalDateTime start = this.debut;
+        java.time.LocalDateTime end = getFin();
+        if (start == null || end == null) {
             return 0;
         }
-        return java.time.temporal.ChronoUnit.MINUTES.between(this.debut, this.fin);
+        return java.time.temporal.ChronoUnit.MINUTES.between(start, end);
     }
 
     public int getDureeMinutes() {
@@ -123,8 +129,8 @@ public class Seance {
                 ", matiere=" + matiere +
                 ", salle=" + salle +
                 ", debut=" + debut +
-                ", fin=" + fin +
-                ", type=" + type +
+                ", fin=" + getFin() +
+                ", type=" + getType() +
                 '}';
     }
 

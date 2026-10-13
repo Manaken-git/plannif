@@ -78,7 +78,7 @@ src/main/java/fr/manaken/plannif/
 ├── exporter/
 │   └── PlanningExporter.java             # Générateur de Dashboard HTML / diagramme de Gantt interactif
 ├── model/                                # Modèles du domaine
-│   ├── Classe.java                       # Classe scolaire (effectif, presences, eleves)
+│   ├── Classe.java                       # Classe scolaire (presences, eleves)
 │   ├── ClassePresence.java               # Période de présence obligatoire [dateDebut, dateFin]
 │   ├── DistanceSalle.java                # Matrice des distances entre salles
 │   ├── Eleve.java                        # Élève rattaché à une Classe
@@ -145,7 +145,7 @@ Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `Planning
 | 7 | **Holiday Conflict** | `holidayConflict` | Aucune séance ne peut avoir lieu pendant les vacances (`Vacances`). |
 | 8 | **Vie de Classe Timing** | `vieDeClasseTimingConstraint` | Une séance `VIE_DE_CLASSE` doit être placée soit sur le 1er jour (9h-10h), soit sur le dernier jour (10h-11h). |
 | 9 | **Seance Type & Duration Match** | `seanceTypeDurationMatch` | Vérifie la correspondance exacte entre la durée réelle de la séance et sa durée attendue (`dureeAttendueMinutes` ou par défaut 90 min pour TP, 60 min sinon). |
-| 10 | **Room Capacity** | `roomCapacity` | L'effectif de la classe (`classe.getEffectif()`) ne doit pas dépasser la capacité de la salle (`salle.getCapacite()`). Pénalité proportionnelle au dépassement. |
+| 10 | **Room Capacity** | `roomCapacity` | Le nombre d'élèves de la classe (`classe.getEleves().size()`) ne doit pas dépasser la capacité de la salle (`salle.getCapacite()`). Pénalité proportionnelle au dépassement. |
 | 11 | **Room Equipment & Type Match** | `roomEquipmentMatch` | La salle assignée doit correspondre au type de salle requis (`typeSalleRequis` de la séance ou de `MatiereClasseConfig`). |
 | 12 | **Teacher Unavailability** | `teacherUnavailability` | Interdit la planification d'un professeur pendant ses indisponibilités fines (`ProfesseurIndisponibilite`). |
 | 13 | **Aligned Sessions** | `alignedSessions` | Deux séances partageant le même `alignementId` doivent obligatoirement commencer sur le même créneau horaire. |
