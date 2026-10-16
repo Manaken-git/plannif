@@ -7,7 +7,6 @@ import ai.timefold.solver.core.api.solver.Solver;
 import ai.timefold.solver.core.api.solver.SolverFactory;
 import ai.timefold.solver.core.config.solver.SolverConfig;
 import fr.manaken.plannif.business.Planning;
-import fr.manaken.plannif.business.PlanningConstraints;
 import fr.manaken.plannif.model.*;
 import fr.manaken.plannif.service.PlanningService;
 import org.springframework.beans.factory.annotation.Value;
