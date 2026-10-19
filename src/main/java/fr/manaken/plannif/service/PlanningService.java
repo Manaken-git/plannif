@@ -296,40 +296,175 @@ public class PlanningService {
                                          java.time.LocalDate targetDate, int startHour, int endHour, Matiere matiere) {
         LocalDateTime expectedStart = targetDate.atTime(startHour, 0);
         LocalDateTime expectedEnd = targetDate.atTime(endHour, 0);
+        int durationMinutes = (int) java.time.Duration.between(expectedStart, expectedEnd).toMinutes();
 
-        boolean alreadyAssigned = planning.getSeances().stream().anyMatch(s ->
+        Seance existingAssigned = planning.getSeances().stream().filter(s ->
                 s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
                         && s.getClasse() != null && s.getClasse().getId().equals(classe.getId())
                         && expectedStart.equals(s.getDebut())
-                        && expectedEnd.equals(s.getFin()));
+                        && expectedEnd.equals(s.getFin()))
+                .findFirst()
+                .orElse(null);
 
-        if (!alreadyAssigned) {
-            Seance reusable = unassignedPool.stream()
-                    .filter(s -> s.getClasse() != null && s.getClasse().getId().equals(classe.getId()) && s.getDebut() == null)
-                    .findFirst()
-                    .orElse(null);
+        if (existingAssigned != null) {
+            existingAssigned.setPinned(true);
+            existingAssigned.setDureeMinutes(durationMinutes);
+            if (existingAssigned.getProfesseur() == null) {
+                existingAssigned.setProfesseur(selectProfesseurForVieDeClasse(planning, classe, expectedStart, expectedEnd));
+            }
+            if (existingAssigned.getSalle() == null) {
+                existingAssigned.setSalle(findAvailableSalleForVieDeClasse(planning, classe, expectedStart, expectedEnd));
+            }
+            return;
+        }
 
-            if (reusable != null) {
-                if (reusable.getMatiere() == null) {
-                    reusable.setMatiere(matiere);
+        Professeur chosenProf = selectProfesseurForVieDeClasse(planning, classe, expectedStart, expectedEnd);
+        Salle chosenSalle = findAvailableSalleForVieDeClasse(planning, classe, expectedStart, expectedEnd);
+
+        Seance reusable = unassignedPool.stream()
+                .filter(s -> s.getClasse() != null && s.getClasse().getId().equals(classe.getId()) && s.getDebut() == null)
+                .findFirst()
+                .orElse(null);
+
+        if (reusable != null) {
+            if (reusable.getMatiere() == null) {
+                reusable.setMatiere(matiere);
+            }
+            reusable.setDebut(expectedStart);
+            reusable.setFin(expectedEnd);
+            reusable.setDureeMinutes(durationMinutes);
+            reusable.setPinned(true);
+            if (reusable.getProfesseur() == null) {
+                reusable.setProfesseur(chosenProf);
+            }
+            if (reusable.getSalle() == null) {
+                reusable.setSalle(chosenSalle);
+            }
+            unassignedPool.remove(reusable);
+        } else {
+            long newId = planning.getSeances().stream().mapToLong(Seance::getId).max().orElse(0L) + 1;
+            Seance vdc = new Seance();
+            vdc.setId(newId);
+            vdc.setClasse(classe);
+            vdc.setType(Seance.TypeSeance.VIE_DE_CLASSE);
+            vdc.setMatiere(matiere);
+            vdc.setDebut(expectedStart);
+            vdc.setFin(expectedEnd);
+            vdc.setDureeMinutes(durationMinutes);
+            vdc.setPinned(true);
+            vdc.setProfesseur(chosenProf);
+            vdc.setSalle(chosenSalle);
+            planning.getSeances().add(vdc);
+        }
+    }
+
+    private Professeur selectProfesseurForVieDeClasse(Planning planning, Classe classe, LocalDateTime start, LocalDateTime end) {
+        if (classe == null) {
+            return null;
+        }
+
+        Professeur principal = classe.getProfesseurReferentPrincipal();
+        if (principal != null && isProfesseurAvailable(planning, principal, start, end)) {
+            return principal;
+        }
+
+        // Fallback to co-referents if principal is unavailable
+        if (classe.getReferents() != null) {
+            for (ClasseReferent ref : classe.getReferents()) {
+                if (ref.getProfesseur() != null && isProfesseurAvailable(planning, ref.getProfesseur(), start, end)) {
+                    return ref.getProfesseur();
                 }
-                if (reusable.getProfesseur() == null && classe.getProfesseurReferentPrincipal() != null) {
-                    reusable.setProfesseur(classe.getProfesseurReferentPrincipal());
-                }
-                unassignedPool.remove(reusable);
-            } else {
-                long newId = planning.getSeances().stream().mapToLong(Seance::getId).max().orElse(0L) + 1;
-                Seance vdc = new Seance();
-                vdc.setId(newId);
-                vdc.setClasse(classe);
-                vdc.setType(Seance.TypeSeance.VIE_DE_CLASSE);
-                vdc.setMatiere(matiere);
-                if (classe.getProfesseurReferentPrincipal() != null) {
-                    vdc.setProfesseur(classe.getProfesseurReferentPrincipal());
-                }
-                planning.getSeances().add(vdc);
             }
         }
+
+        // Fallback to principal or first declared referent if all have constraints
+        if (principal != null) {
+            return principal;
+        }
+        if (classe.getReferents() != null && !classe.getReferents().isEmpty()) {
+            return classe.getReferents().get(0).getProfesseur();
+        }
+        return null;
+    }
+
+    private boolean isProfesseurAvailable(Planning planning, Professeur prof, LocalDateTime debut, LocalDateTime fin) {
+        if (prof == null || debut == null || fin == null) {
+            return false;
+        }
+
+        // Check Day Off (0 = Monday .. 4 = Friday)
+        int dow = debut.getDayOfWeek().getValue() - 1;
+        if (planning.getProfesseurDayOffs() != null) {
+            boolean hasDayOff = planning.getProfesseurDayOffs().stream()
+                    .anyMatch(d -> d.getProfesseur() != null && d.getProfesseur().getId().equals(prof.getId())
+                            && d.getDayOfWeek() != null && d.getDayOfWeek() == dow);
+            if (hasDayOff) {
+                return false;
+            }
+        }
+
+        // Check indisponibilites
+        if (planning.getProfesseurIndisponibilites() != null) {
+            boolean hasIndisp = planning.getProfesseurIndisponibilites().stream()
+                    .anyMatch(indisp -> indisp.getProfesseur() != null && indisp.getProfesseur().getId().equals(prof.getId())
+                            && indisp.matches(debut, fin));
+            if (hasIndisp) {
+                return false;
+            }
+        }
+
+        // Check if teacher is already assigned to another pinned session at this slot
+        if (planning.getSeances() != null) {
+            boolean busy = planning.getSeances().stream()
+                    .anyMatch(s -> s.isPinned() && s.getProfesseur() != null && s.getProfesseur().getId().equals(prof.getId())
+                            && s.getDebut() != null && s.getFin() != null
+                            && s.getDebut().isBefore(fin) && s.getFin().isAfter(debut));
+            if (busy) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private Salle findAvailableSalleForVieDeClasse(Planning planning, Classe classe, LocalDateTime start, LocalDateTime end) {
+        if (planning.getSalles() == null || planning.getSalles().isEmpty()) {
+            return null;
+        }
+
+        int classSize = (classe != null && classe.getEleves() != null) ? classe.getEleves().size() : 0;
+
+        List<Salle> candidates = planning.getSalles().stream()
+                .filter(salle -> {
+                    // Check capacity
+                    if (classSize > 0 && salle.getCapacite() != null && salle.getCapacite() < classSize) {
+                        return false;
+                    }
+                    // Check if already assigned to another pinned session at this slot
+                    if (planning.getSeances() != null) {
+                        boolean roomBusy = planning.getSeances().stream().anyMatch(s ->
+                                s.isPinned() && s.getSalle() != null && s.getSalle().getId().equals(salle.getId())
+                                        && s.getDebut() != null && s.getFin() != null
+                                        && s.getDebut().isBefore(end) && s.getFin().isAfter(start));
+                        if (roomBusy) {
+                            return false;
+                        }
+                    }
+                    return true;
+                })
+                .sorted((s1, s2) -> {
+                    boolean s1Cours = s1.getType() == null || "COURS".equalsIgnoreCase(s1.getType()) || "STANDARD".equalsIgnoreCase(s1.getType());
+                    boolean s2Cours = s2.getType() == null || "COURS".equalsIgnoreCase(s2.getType()) || "STANDARD".equalsIgnoreCase(s2.getType());
+                    if (s1Cours && !s2Cours) return -1;
+                    if (!s1Cours && s2Cours) return 1;
+
+                    int cap1 = s1.getCapacite() != null ? s1.getCapacite() : 999;
+                    int cap2 = s2.getCapacite() != null ? s2.getCapacite() : 999;
+                    return Integer.compare(cap1, cap2);
+                })
+                .collect(Collectors.toList());
+
+        return candidates.isEmpty() ? planning.getSalles().get(0) : candidates.get(0);
     }
 
     private Matiere getOrCreateVieDeClasseMatiere(Planning planning) {
