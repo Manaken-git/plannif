@@ -30,9 +30,11 @@ graph LR
     end
 
     subgraph Plannif ["Microservice plannif (:8080)"]
-        Controller["PlanningController"]
+        Controller["PlanningController (Synchrone)"]
+        JobController["PlanningJobController (Asynchrone & SSE)"]
+        JobManager["PlanningJobManager (In-Memory Registry)"]
         Service["PlanningService"]
-        SolverEngine["Timefold Solver Engine"]
+        SolverEngine["Timefold Solver Engine / SolverManager"]
         Exporter["PlanningExporter (HTML Dashboard)"]
         ApiClient["PlannifDataApiClient (RestClient)"]
     end
@@ -42,6 +44,11 @@ graph LR
     end
 
     VueApp -->|POST /planning/solve| Controller
+    VueApp -->|GET /planning/score/explain| Controller
+    VueApp -->|POST /planning/jobs| JobController
+    VueApp -->|GET /planning/jobs/{id}/progress (SSE)| JobController
+    JobController --> JobManager
+    JobManager --> SolverEngine
     Controller --> Service
     Service -->|GET /classes, /profs, etc.| ApiClient
     ApiClient --> DataApi
@@ -64,7 +71,8 @@ graph LR
 
 ```
 src/main/java/fr/manaken/plannif/
-├── PlannifApplication.j├── business/                             # Cœur Timefold (Solution, Configuration & Contraintes)
+├── PlannifApplication.java           # Point d'entrée Spring Boot
+├── business/                             # Cœur Timefold (Solution, Configuration & Contraintes)
 │   ├── Planning.java                     # @PlanningSolution (Agrégat de résolution)
 │   ├── PlanningConstraintConfiguration.java # @ConstraintConfiguration (Poids dynamiques des scores)
 │   └── PlanningConstraints.java          # @ConstraintProvider (28 contraintes de score)
@@ -73,8 +81,11 @@ src/main/java/fr/manaken/plannif/
 │   ├── config/PlannifDataClientConfig.java # Configuration du Bean RestClient
 │   └── dto/                              # DTOs (ClasseDto, SeanceDto, PlanningDto, etc.)
 │   └── mapper/                           # Mappers MapStruct (entité <-> DTO)
+├── config/
+│   └── TimefoldSolverConfig.java         # Configuration Spring du SolverFactory et SolverManager
 ├── controller/
-│   └── PlanningController.java           # Endpoints REST (/planning/solve, /planning/solve-html)
+│   ├── PlanningController.java           # Endpoints REST synchrones (/planning/solve [GET/POST], /planning/score/explain [GET/POST], /planning/solve-html)
+│   └── PlanningJobController.java        # Endpoints REST asynchrones (/planning/jobs [POST], /{id} [GET], /{id}/progress [SSE], /{id}/stop [POST])
 ├── exporter/
 │   └── PlanningExporter.java             # Générateur de Dashboard HTML / diagramme de Gantt interactif
 ├── model/                                # Modèles du domaine
@@ -96,7 +107,11 @@ src/main/java/fr/manaken/plannif/
 │   ├── TeacherClassWork.java             # Objet utilitaire Timefold pour calculs en minutes de charge prof/classe
 │   └── Vacances.java                     # Plage de dates de vacances scolaires
 └── service/
-    └── PlanningService.java              # Orchestration, génération dates/séances, sauvegarde
+    ├── PlanningService.java              # Orchestration, génération dates/séances, sauvegarde
+    └── job/                              # Gestion du cycle de vie asynchrone des jobs
+        ├── JobStatus.java                # Enum SUBMITTED, SOLVING, COMPLETED, TERMINATED_EARLY, FAILED
+        ├── PlanningJobManager.java       # Registry en mémoire, orchestration SolverManager & SSE
+        └── PlanningJobState.java         # État thread-safe et métadonnées de progression d'un job
 ```
 
 ---
@@ -168,6 +183,7 @@ Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `Planning
 | 13 | **Subject Class Spreading** | `subjectClassSpreading` | Évite de planifier la même matière deux jours consécutifs pour favoriser l'espacement pédagogique. |
 | 14 | **High Cognitive Load** | `highCognitiveLoad` | Privilégie le matin (avant 12h30) pour les matières à forte charge cognitive (`MatiereClasseConfig.prioriteMatin == true`). |
 | 15 | **Session Pairing** | `sessionPairing` | Favorise le regroupement de deux séances d'1h en bloc continu de 2h le même jour plutôt que de les éclater. |
+| 16 | **Student Day Start Time** | `studentDayStartTime` | Verrouille le début de la journée de cours d'une classe à 8h00 (ou 9h00 le lundi) ; pénalise proportionnellement au retard en minutes tout démarrage plus tardif. Poids configurable via `ConstraintWeightOverrides`. |
 
 ---
 
@@ -199,12 +215,16 @@ Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `Planning
 ---
 
 ## 7. 🧪 Suite de Tests & Qualité
-
-La suite comprend désormais **53 tests unitaires et d'intégration** (tous au vert) :
-- `ConstraintVerifierTest` (**28 tests**) : Validation isolée de chaque contrainte Timefold (anciennes et nouvelles) et validation de la configuration dynamique des poids.
+ 
+La suite comprend désormais **69 tests unitaires et d'intégration** (100% au vert, 0 échec, 0 erreur) :
+- `ConstraintVerifierTest` (**32 tests**) : Validation isolée de chaque contrainte Timefold (anciennes et nouvelles, y compris le démarrage à 8h00 / 9h00 le lundi) et validation de la configuration dynamique des poids.
+- `PlanningJobControllerTest` (**10 tests**) : Validation de la soumission asynchrone non-bloquante, cycle de vie des jobs, streaming SSE temps réel, explication de score, surcharge dynamique de poids de contraintes (`constraintWeightOverrides`) et arrêt anticipé avec gestion des conflits 409.
+- `SolverTest` (**3 tests**) : 
+  - Résolution globale avec assertion sur la faisabilité (`isFeasible() == true`).
+  - Immutabilité stricte des séances épinglées (`@PlanningPin boolean pinned`) face au solveur et réallocation des séances mobiles sans conflit.
+  - Surcharge dynamique des poids de contraintes (`ConstraintWeightOverrides`) multipliant fidèlement les pénalités appliquées par le moteur de score.
 - `AdvancedSolverTest` (4 tests) : Validation du calcul de score et détection des conflits (salle, prof, présence classe).
-- `SolverTest` (1 test) : Test d'intégration de résolution complète avec assertion sur la faisabilité (`isFeasible() == true`).
 - `PlanningControllerTest` (5 tests) : Test de l'orchestration globale, chargement de scénarios JSON, génération dynamique, persistance et propagation de la date/heure de fin (`fin`), et export Gantt HTML.
 - `PlannifDataApiClientTest` (8 tests) : Validation des appels HTTP avec MockRestServiceServer.
-- `MappersTest` (6 tests) : Validation des mappers MapStruct (dont mapping direct de `debut` et `fin` dans `SeanceDto`).
+- `MappersTest` (6 tests) : Validation des mappers MapStruct (dont mapping direct de `debut`, `fin` et `pinned` dans `SeanceDto`).
 - `PlannifApplicationTests` (1 test) : Chargement du contexte Spring Boot.

@@ -129,6 +129,7 @@ class MappersTest {
         entity.setSalle(salle);
         entity.setDebut(debut);
         entity.setType(Seance.TypeSeance.COURS);
+        entity.setPinned(true);
 
         SeanceDto dto = seanceMapper.toDto(entity);
         assertEquals(1L, dto.getId());
@@ -139,6 +140,7 @@ class MappersTest {
         assertEquals(debut, dto.getDebut());
         assertEquals(fin, dto.getFin());
         assertEquals("COURS", dto.getType());
+        assertTrue(dto.isPinned());
 
         Seance mapped = seanceMapper.toEntity(dto);
         assertEquals(1L, mapped.getId());
@@ -149,5 +151,6 @@ class MappersTest {
         assertEquals(debut, mapped.getDebut());
         assertEquals(fin, mapped.getFin());
         assertEquals(Seance.TypeSeance.COURS, mapped.getType());
+        assertTrue(mapped.isPinned());
     }
 }

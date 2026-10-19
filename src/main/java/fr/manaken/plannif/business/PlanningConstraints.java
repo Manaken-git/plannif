@@ -16,6 +16,7 @@ import fr.manaken.plannif.model.TeacherClassWork;
 import fr.manaken.plannif.model.Vacances;
 import org.jspecify.annotations.NonNull;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
@@ -59,6 +60,7 @@ public class PlanningConstraints implements ConstraintProvider {
             studentLunchBreak(factory),
             studentMaxHoursPerDay(factory),
             studentMaxGap(factory),
+            studentDayStartTime(factory),
             alignedSessions(factory),
 
             // Phase 5: Enseignants Avancés & Déplacements
@@ -396,6 +398,27 @@ public class PlanningConstraints implements ConstraintProvider {
                 })
                 .penalize(HardSoftScore.ONE_SOFT, (s1, s2) -> (int) ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut()))
                 .asConstraint(STUDENT_MAX_GAP);
+    }
+
+    public Constraint studentDayStartTime(ConstraintFactory factory) {
+        return factory.forEach(Seance.class)
+                .filter(seance -> seance.getClasse() != null && seance.getDebut() != null)
+                .groupBy(Seance::getClasse,
+                        seance -> seance.getDebut().toLocalDate(),
+                        ConstraintCollectors.min(Seance::getDebut))
+                .filter((classe, date, minDebut) -> {
+                    LocalTime expectedStart = (date.getDayOfWeek() == DayOfWeek.MONDAY)
+                            ? LocalTime.of(9, 0)
+                            : LocalTime.of(8, 0);
+                    return minDebut.toLocalTime().isAfter(expectedStart);
+                })
+                .penalize(HardSoftScore.ONE_SOFT, (classe, date, minDebut) -> {
+                    LocalTime expectedStart = (date.getDayOfWeek() == DayOfWeek.MONDAY)
+                            ? LocalTime.of(9, 0)
+                            : LocalTime.of(8, 0);
+                    return (int) ChronoUnit.MINUTES.between(expectedStart, minDebut.toLocalTime());
+                })
+                .asConstraint(STUDENT_DAY_START_TIME);
     }
 
     public Constraint alignedSessions(ConstraintFactory factory) {

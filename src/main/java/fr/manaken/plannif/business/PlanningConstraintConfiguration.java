@@ -34,6 +34,7 @@ public final class PlanningConstraintConfiguration {
     public static final String STUDENT_LUNCH_BREAK = "Student lunch break";
     public static final String STUDENT_MAX_HOURS_PER_DAY = "Student max hours per day";
     public static final String STUDENT_MAX_GAP = "Student max gap";
+    public static final String STUDENT_DAY_START_TIME = "Student day start time";
     public static final String ALIGNED_SESSIONS = "Aligned sessions synchronization";
 
     // Phase 5: Enseignants Avancés & Déplacements

@@ -1296,4 +1296,120 @@ class ConstraintVerifierTest {
                 .givenSolution(problem)
                 .penalizesBy(1);
     }
+
+    @Test
+    void studentDayStartTimeTuesdayAt8hNoPenalty() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Tuesday at 08:00 -> exactly on time
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 13, 8, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 13, 9, 0));
+
+        problem.getSeances().add(s1);
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::studentDayStartTime)
+                .givenSolution(problem)
+                .penalizesBy(0);
+    }
+
+    @Test
+    void studentDayStartTimeTuesdayAt9hPenalizedBy60() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Tuesday at 09:00 -> 1 hour late compared to 08:00
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 13, 9, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 13, 10, 0));
+
+        problem.getSeances().add(s1);
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::studentDayStartTime)
+                .givenSolution(problem)
+                .penalizesBy(60);
+    }
+
+    @Test
+    void studentDayStartTimeMondayAt9hNoPenalty() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Monday at 09:00 -> expected Monday start (no penalty)
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 9, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 10, 0));
+
+        problem.getSeances().add(s1);
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::studentDayStartTime)
+                .givenSolution(problem)
+                .penalizesBy(0);
+    }
+
+    @Test
+    void studentDayStartTimeMondayAt10hPenalizedBy60() {
+        Planning problem = new Planning();
+        Classe classe = new Classe();
+        classe.setId(1L);
+        Salle salle = new Salle();
+        salle.setId(1L);
+        Professeur prof = new Professeur();
+        prof.setId(1L);
+
+        // Monday at 10:00 -> 1 hour late compared to 09:00
+        Seance s1 = new Seance();
+        s1.setId(1L);
+        s1.setClasse(classe);
+        s1.setSalle(salle);
+        s1.setProfesseur(prof);
+        s1.setDebut(LocalDateTime.of(2024, 2, 12, 10, 0));
+        s1.setFin(LocalDateTime.of(2024, 2, 12, 11, 0));
+
+        problem.getSeances().add(s1);
+        problem.getClasses().add(classe);
+        problem.getSalles().add(salle);
+        problem.getProfesseurs().add(prof);
+
+        constraintVerifier.verifyThat(PlanningConstraints::studentDayStartTime)
+                .givenSolution(problem)
+                .penalizesBy(60);
+    }
 }

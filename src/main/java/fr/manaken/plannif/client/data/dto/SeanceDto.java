@@ -19,4 +19,5 @@ public class SeanceDto {
     private String type;
     private java.time.LocalDateTime debut;
     private java.time.LocalDateTime fin;
+    private boolean pinned;
 }

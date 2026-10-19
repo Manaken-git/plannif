@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -45,6 +46,84 @@ public class SolverTest {
             assertNotNull(seance.getSalle(), "Seance " + seance.getId() + " should have a room assigned");
             System.out.println("Seance " + seance.getId() + " -> " + seance.getSalle().getCode());
         }
+    }
+
+    @Test
+    public void testPinnedSeanceImmutability() {
+        SolverConfig solverConfig = new SolverConfig()
+                .withSolutionClass(Planning.class)
+                .withEntityClasses(Seance.class)
+                .withConstraintProviderClass(PlanningConstraints.class)
+                .withTerminationSpentLimit(Duration.ofSeconds(4));
+
+        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        Solver<Planning> solver = solverFactory.buildSolver();
+
+        Planning problem = generateProblem();
+
+        // Pin seance 1 strictly to room s1 (A101)
+        Seance seance1 = problem.getSeances().stream().filter(s -> s.getId().equals(1L)).findFirst().orElseThrow();
+        Salle salle1 = problem.getSalles().stream().filter(s -> s.getId().equals(1L)).findFirst().orElseThrow();
+        seance1.setSalle(salle1);
+        seance1.setPinned(true);
+
+        // Seance 2 is NOT pinned and starts unassigned
+        Seance seance2 = problem.getSeances().stream().filter(s -> s.getId().equals(2L)).findFirst().orElseThrow();
+        seance2.setSalle(null);
+        seance2.setPinned(false);
+
+        Planning solution = solver.solve(problem);
+
+        assertNotNull(solution);
+        assertTrue(solution.getScore().isFeasible(), "Solution should be feasible");
+
+        Seance solvedSeance1 = solution.getSeances().stream().filter(s -> s.getId().equals(1L)).findFirst().orElseThrow();
+        Seance solvedSeance2 = solution.getSeances().stream().filter(s -> s.getId().equals(2L)).findFirst().orElseThrow();
+
+        // Pinned seance 1 remained strictly at salle1
+        assertEquals(1L, solvedSeance1.getSalle().getId(), "Pinned seance room must remain invariant");
+        assertEquals("A101", solvedSeance1.getSalle().getCode());
+        assertTrue(solvedSeance1.isPinned());
+
+        // Seance 2 was assigned salle2 (A102) to avoid room conflict with pinned seance 1
+        assertEquals(2L, solvedSeance2.getSalle().getId(), "Unpinned seance 2 should be assigned to room 2 to avoid conflict");
+        assertEquals("A102", solvedSeance2.getSalle().getCode());
+    }
+
+    @Test
+    public void testConstraintWeightOverridesPenalty() {
+        SolverConfig solverConfig = new SolverConfig()
+                .withSolutionClass(Planning.class)
+                .withEntityClasses(Seance.class)
+                .withConstraintProviderClass(PlanningConstraints.class)
+                .withTerminationSpentLimit(Duration.ofSeconds(2));
+
+        SolverFactory<Planning> solverFactory = SolverFactory.create(solverConfig);
+        Solver<Planning> solver = solverFactory.buildSolver();
+
+        Planning problem = generateProblem();
+
+        // Pin both seance 1 and seance 2 to the exact same room and time to force an unavoidable room conflict
+        Salle salle1 = problem.getSalles().stream().filter(s -> s.getId().equals(1L)).findFirst().orElseThrow();
+        for (Seance s : problem.getSeances()) {
+            s.setSalle(salle1);
+            s.setPinned(true);
+        }
+
+        // Apply dynamic constraint weight override: 10 Hard penalty instead of default 1 Hard
+        problem.setConstraintWeightOverrides(
+                ai.timefold.solver.core.api.domain.solution.ConstraintWeightOverrides.of(
+                        java.util.Map.of(fr.manaken.plannif.business.PlanningConstraintConfiguration.ROOM_CONFLICT,
+                                ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore.ofHard(10))
+                )
+        );
+
+        Planning solution = solver.solve(problem);
+
+        assertNotNull(solution);
+        assertNotNull(solution.getScore());
+        // Penalty must be exactly -10hard due to the dynamic override
+        assertEquals(-10, solution.getScore().hardScore(), "Room conflict penalty must reflect the overridden weight of -10hard");
     }
 
     private Planning generateProblem() {

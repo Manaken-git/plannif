@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.EqualsAndHashCode;
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
+import ai.timefold.solver.core.api.domain.entity.PlanningPin;
 
 @Getter
 @Setter
@@ -18,6 +19,9 @@ public class Seance {
     @PlanningId
     @EqualsAndHashCode.Include
     private Long id;
+
+    @PlanningPin
+    private boolean pinned;
 
     
     
