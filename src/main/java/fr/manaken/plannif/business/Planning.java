@@ -72,6 +72,7 @@ public class Planning {
     private List<fr.manaken.plannif.model.DistanceSalle> distanceSalles = new java.util.ArrayList<>();
 
     @PlanningScore
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private HardSoftScore score;
 
     @JsonProperty("creneaux")

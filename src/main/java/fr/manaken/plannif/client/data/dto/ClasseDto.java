@@ -17,4 +17,5 @@ public class ClasseDto {
     private Long id;
     private String nom;
     private List<ClassePresenceDto> presences;
+    private List<ClasseReferentDto> referents;
 }

@@ -166,6 +166,20 @@ public class PlanningService {
         Map<Long, Matiere> matiereMap = matieres.stream().collect(Collectors.toMap(Matiere::getId, m -> m, (a, b) -> a));
         Map<Long, Salle> salleMap = salles.stream().collect(Collectors.toMap(Salle::getId, s -> s, (a, b) -> a));
 
+        for (Classe c : classes) {
+            if (c.getReferents() != null) {
+                for (ClasseReferent cr : c.getReferents()) {
+                    cr.setClasse(c);
+                    if (cr.getProfesseur() != null && cr.getProfesseur().getId() != null) {
+                        Professeur resolved = profMap.get(cr.getProfesseur().getId());
+                        if (resolved != null) {
+                            cr.setProfesseur(resolved);
+                        }
+                    }
+                }
+            }
+        }
+
         for (Seance s : seances) {
             if (s.getClasse() != null && s.getClasse().getId() != null) {
                 s.setClasse(classeMap.get(s.getClasse().getId()));
@@ -299,6 +313,9 @@ public class PlanningService {
                 if (reusable.getMatiere() == null) {
                     reusable.setMatiere(matiere);
                 }
+                if (reusable.getProfesseur() == null && classe.getProfesseurReferentPrincipal() != null) {
+                    reusable.setProfesseur(classe.getProfesseurReferentPrincipal());
+                }
                 unassignedPool.remove(reusable);
             } else {
                 long newId = planning.getSeances().stream().mapToLong(Seance::getId).max().orElse(0L) + 1;
@@ -307,6 +324,9 @@ public class PlanningService {
                 vdc.setClasse(classe);
                 vdc.setType(Seance.TypeSeance.VIE_DE_CLASSE);
                 vdc.setMatiere(matiere);
+                if (classe.getProfesseurReferentPrincipal() != null) {
+                    vdc.setProfesseur(classe.getProfesseurReferentPrincipal());
+                }
                 planning.getSeances().add(vdc);
             }
         }

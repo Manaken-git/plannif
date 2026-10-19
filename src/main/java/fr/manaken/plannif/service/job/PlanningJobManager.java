@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 public class PlanningJobManager {
@@ -40,7 +42,52 @@ public class PlanningJobManager {
 
     public PlanningJobState submitJob(Planning customProblem, Map<String, String> constraintWeightOverrides) {
         String jobId = UUID.randomUUID().toString();
-        Planning problem = customProblem != null ? customProblem : planningService.buildPlanning();
+        Planning problem;
+
+        // If customProblem is already a complete problem with its candidate dates (e.g. in unit tests), use it directly
+        if (customProblem != null && customProblem.getDatesDebutPossibles() != null && !customProblem.getDatesDebutPossibles().isEmpty()) {
+            problem = customProblem;
+        } else {
+            // Otherwise, load full base problem from database
+            Planning baseProblem = planningService.buildPlanning();
+            if (baseProblem != null) {
+                problem = baseProblem;
+                if (customProblem != null && customProblem.getSeances() != null && !customProblem.getSeances().isEmpty()) {
+                    Map<Long, fr.manaken.plannif.model.Seance> customSeanceMap = customProblem.getSeances().stream()
+                            .filter(s -> s.getId() != null)
+                            .collect(Collectors.toMap(fr.manaken.plannif.model.Seance::getId, s -> s, (a, b) -> a));
+
+                    if (problem.getSeances() != null) {
+                        for (fr.manaken.plannif.model.Seance baseSeance : problem.getSeances()) {
+                            fr.manaken.plannif.model.Seance custom = customSeanceMap.get(baseSeance.getId());
+                            if (custom != null) {
+                                baseSeance.setPinned(custom.isPinned());
+                                if (custom.isPinned()) {
+                                    if (custom.getDebut() != null) {
+                                        baseSeance.setDebut(custom.getDebut());
+                                    }
+                                    if (custom.getFin() != null) {
+                                        baseSeance.setFin(custom.getFin());
+                                    }
+                                    if (custom.getSalle() != null) {
+                                        baseSeance.setSalle(custom.getSalle());
+                                    }
+                                    if (custom.getProfesseur() != null) {
+                                        baseSeance.setProfesseur(custom.getProfesseur());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (customProblem != null && customProblem.getNom() != null) {
+                    problem.setNom(customProblem.getNom());
+                }
+            } else {
+                problem = customProblem != null ? customProblem : new Planning();
+            }
+        }
+
         planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
 

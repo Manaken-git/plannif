@@ -15,6 +15,8 @@ public final class PlanningConstraintConfiguration {
     public static final String SUBJECT_CLASS_PERIOD = "Subject class period";
     public static final String HOLIDAY_CONFLICT = "Holiday conflict";
     public static final String VIE_DE_CLASSE_TIMING = "Vie de classe timing constraint";
+    public static final String VIE_DE_CLASSE_REFERENT = "Vie de classe referent assignment";
+    public static final String VIE_DE_CLASSE_PRINCIPAL_PREFERENCE = "Vie de classe principal referent preference";
     public static final String SEANCE_TYPE_DURATION_MATCH = "Seance type and slot duration match";
 
     public static final String TEACHER_DAY_OFF = "Teacher day off";

@@ -45,6 +45,8 @@ public class PlanningConstraints implements ConstraintProvider {
             studentGroupPresence(factory),
             teacherMustBeQualified(factory),
             vieDeClasseTimingConstraint(factory),
+            vieDeClasseReferentConstraint(factory),
+            vieDeClassePrincipalReferentPreference(factory),
             teacherMaxGap(factory),
             subjectClassPeriodConstraint(factory),
             subjectClassMaxSessionsPerDay(factory),
@@ -306,6 +308,33 @@ public class PlanningConstraints implements ConstraintProvider {
                         filtering((seance, presence) -> presence.isValidVieDeClasse(seance.getDebut(), seance.getFin())))
                 .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(VIE_DE_CLASSE_TIMING);
+    }
+
+    public Constraint vieDeClasseReferentConstraint(ConstraintFactory factory) {
+        return factory.forEach(Seance.class)
+                .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        && seance.getClasse() != null
+                        && seance.getClasse().getReferents() != null
+                        && !seance.getClasse().getReferents().isEmpty()
+                        && seance.getProfesseur() != null)
+                .filter(seance -> !seance.getClasse().isProfesseurReferent(seance.getProfesseur()))
+                .penalize(HardSoftScore.ONE_HARD)
+                .asConstraint(VIE_DE_CLASSE_REFERENT);
+    }
+
+    public Constraint vieDeClassePrincipalReferentPreference(ConstraintFactory factory) {
+        return factory.forEach(Seance.class)
+                .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        && seance.getClasse() != null
+                        && seance.getClasse().getReferents() != null
+                        && !seance.getClasse().getReferents().isEmpty()
+                        && seance.getProfesseur() != null)
+                .filter(seance -> {
+                    fr.manaken.plannif.model.Professeur principal = seance.getClasse().getProfesseurReferentPrincipal();
+                    return principal != null && principal.getId() != null && !principal.getId().equals(seance.getProfesseur().getId());
+                })
+                .penalize(HardSoftScore.ONE_SOFT)
+                .asConstraint(VIE_DE_CLASSE_PRINCIPAL_PREFERENCE);
     }
 
     // ==========================================

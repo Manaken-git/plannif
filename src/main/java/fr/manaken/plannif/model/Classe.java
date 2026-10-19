@@ -33,6 +33,27 @@ public class Classe {
     
     private java.util.List<ClassePresence> presences = new java.util.ArrayList<>();
 
+    private java.util.List<ClasseReferent> referents = new java.util.ArrayList<>();
+
+    public boolean isProfesseurReferent(Professeur p) {
+        if (p == null || referents == null || referents.isEmpty()) {
+            return false;
+        }
+        return referents.stream()
+                .anyMatch(r -> r.getProfesseur() != null && r.getProfesseur().getId() != null && r.getProfesseur().getId().equals(p.getId()));
+    }
+
+    public Professeur getProfesseurReferentPrincipal() {
+        if (referents == null || referents.isEmpty()) {
+            return null;
+        }
+        return referents.stream()
+                .filter(r -> r.getRole() == RoleReferent.PRINCIPAL && r.getProfesseur() != null)
+                .map(ClasseReferent::getProfesseur)
+                .findFirst()
+                .orElseGet(() -> referents.get(0).getProfesseur());
+    }
+
     @Override
     public String toString() {
         return nom;

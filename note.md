@@ -89,8 +89,9 @@ src/main/java/fr/manaken/plannif/
 ├── exporter/
 │   └── PlanningExporter.java             # Générateur de Dashboard HTML / diagramme de Gantt interactif
 ├── model/                                # Modèles du domaine
-│   ├── Classe.java                       # Classe scolaire (presences, eleves)
+│   ├── Classe.java                       # Classe scolaire (presences, eleves, referents)
 │   ├── ClassePresence.java               # Période de présence obligatoire [dateDebut, dateFin]
+│   ├── ClasseReferent.java               # Association d'un professeur référent à une classe avec un rôle
 │   ├── DistanceSalle.java                # Matrice des distances entre salles
 │   ├── Eleve.java                        # Élève rattaché à une Classe
 │   ├── Equipement.java                   # Matériel / ressource
@@ -101,6 +102,7 @@ src/main/java/fr/manaken/plannif/
 │   ├── Professeur.java                   # Enseignant (quotas heures max/jour, max/semaine, max/séance)
 │   ├── ProfesseurDayOff.java             # Jour de repos enseignant (0=Lundi..4=Vendredi)
 │   ├── ProfesseurIndisponibilite.java    # Indisponibilités horaires fines (jour, heureDebut, heureFin)
+│   ├── RoleReferent.java                 # Enum PRINCIPAL, CO_REFERENT, TUTEUR_ENTREPRISE
 │   ├── Salle.java                        # Salle de cours avec code, capacité, type
 │   ├── Seance.java                       # @PlanningEntity (debut, salle, professeur, alignementId, typeSalleRequis)
 │   ├── SemaineType.java                  # Enum SEMAINE_1, SEMAINE_2, SEMAINE_3
@@ -146,7 +148,7 @@ src/main/java/fr/manaken/plannif/
 
 ## 5. 📏 Catalogue Complet des Contraintes (`PlanningConstraints`)
 
-Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `PlanningConstraintConfiguration` avec calculs optimisés en `long` minutes :
+Le solver évalue **30 contraintes** (14 Hard, 16 Soft / 17 Soft selon configuration), pilotées par `PlanningConstraintConfiguration` avec calculs optimisés en `long` minutes :
 
 ### 🔴 Contraintes Strictes (Hard Constraints)
 | # | Nom | Méthode | Règle / Description |
@@ -159,11 +161,12 @@ Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `Planning
 | 6 | **Subject Class Period** | `subjectClassPeriodConstraint` | La séance doit respecter la plage de dates définie dans `MatiereClasseConfig`. |
 | 7 | **Holiday Conflict** | `holidayConflict` | Aucune séance ne peut avoir lieu pendant les vacances (`Vacances`). |
 | 8 | **Vie de Classe Timing** | `vieDeClasseTimingConstraint` | Une séance `VIE_DE_CLASSE` doit être placée soit sur le 1er jour (9h-10h), soit sur le dernier jour (10h-11h). |
-| 9 | **Seance Type & Duration Match** | `seanceTypeDurationMatch` | Vérifie la correspondance exacte entre la durée réelle de la séance et sa durée attendue (`dureeAttendueMinutes` ou par défaut 90 min pour TP, 60 min sinon). |
-| 10 | **Room Capacity** | `roomCapacity` | Le nombre d'élèves de la classe (`classe.getEleves().size()`) ne doit pas dépasser la capacité de la salle (`salle.getCapacite()`). Pénalité proportionnelle au dépassement. |
-| 11 | **Room Equipment & Type Match** | `roomEquipmentMatch` | La salle assignée doit correspondre au type de salle requis (`typeSalleRequis` de la séance ou de `MatiereClasseConfig`). |
-| 12 | **Teacher Unavailability** | `teacherUnavailability` | Interdit la planification d'un professeur pendant ses indisponibilités fines (`ProfesseurIndisponibilite`). |
-| 13 | **Aligned Sessions** | `alignedSessions` | Deux séances partageant le même `alignementId` doivent obligatoirement commencer sur le même créneau horaire. |
+| 9 | **Vie de Classe Referent** | `vieDeClasseReferentConstraint` | Le professeur affecté à une séance `VIE_DE_CLASSE` doit obligatoirement figurer parmi les professeurs référents déclarés de la classe (`classe.getReferents()`). |
+| 10 | **Seance Type & Duration Match** | `seanceTypeDurationMatch` | Vérifie la correspondance exacte entre la durée réelle de la séance et sa durée attendue (`dureeAttendueMinutes` ou par défaut 90 min pour TP, 60 min sinon). |
+| 11 | **Room Capacity** | `roomCapacity` | Le nombre d'élèves de la classe (`classe.getEleves().size()`) ne doit pas dépasser la capacité de la salle (`salle.getCapacite()`). Pénalité proportionnelle au dépassement. |
+| 12 | **Room Equipment & Type Match** | `roomEquipmentMatch` | La salle assignée doit correspondre au type de salle requis (`typeSalleRequis` de la séance ou de `MatiereClasseConfig`). |
+| 13 | **Teacher Unavailability** | `teacherUnavailability` | Interdit la planification d'un professeur pendant ses indisponibilités fines (`ProfesseurIndisponibilite`). |
+| 14 | **Aligned Sessions** | `alignedSessions` | Deux séances partageant le même `alignementId` doivent obligatoirement commencer sur le même créneau horaire. |
 
 ### 🟡 Contraintes Souples (Soft Constraints)
 | # | Nom | Méthode | Règle / Description |
@@ -184,6 +187,7 @@ Le solver évalue **28 contraintes** (12 Hard, 16 Soft), pilotées par `Planning
 | 14 | **High Cognitive Load** | `highCognitiveLoad` | Privilégie le matin (avant 12h30) pour les matières à forte charge cognitive (`MatiereClasseConfig.prioriteMatin == true`). |
 | 15 | **Session Pairing** | `sessionPairing` | Favorise le regroupement de deux séances d'1h en bloc continu de 2h le même jour plutôt que de les éclater. |
 | 16 | **Student Day Start Time** | `studentDayStartTime` | Verrouille le début de la journée de cours d'une classe à 8h00 (ou 9h00 le lundi) ; pénalise proportionnellement au retard en minutes tout démarrage plus tardif. Poids configurable via `ConstraintWeightOverrides`. |
+| 17 | **Vie de Classe Principal Referent** | `vieDeClassePrincipalReferentPreference` | Privilégie l'attribution de la séance `VIE_DE_CLASSE` au professeur référent ayant le rôle `PRINCIPAL` par rapport à un co-référent. |
 
 ---
 
