@@ -269,6 +269,13 @@ L'intégration de la résolution Timefold dans le client web React `plannifVue` 
    - **Piste B — Drag & Drop direct sur la grille** ([CalendarGrid.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/CalendarGrid/CalendarGrid.tsx)) : glisser-déposer natif HTML5 sur les colonnes des jours avec magnétisme par pas de 30 minutes, préservation stricte de la durée de la séance, et feedback visuel de survol de zone (`is-drag-over`).
    - **Persistance & Épinglage (PlanningPin)** : le champ `pinned: boolean` est propagé à l'API backend (`@PlanningPin` dans Timefold), assurant que les ajustements manuels de l'utilisateur restent figés lors des relances ultérieures du solveur.
    - **Synchronisation d'état réactive (Optimistic UI)** : synchronisation immédiate des modifications (`updateSessionInState`) à la fois sur l'état global `seances` et dans le planning sélectionné `plannings[id].seances`, garantissant un rafraîchissement visuel instantané de l'emploi du temps sans latence ni désynchronisation.
+7. **Suppression de Planning en Cascade (`planning-data`)** :
+   - Correction de l'erreur `SQLIntegrityConstraintViolationException: Cannot delete or update a parent row (fk_seance_planning)` lors de la suppression d'un planning.
+   - [SeanceRepository.java](file:///e:/Boulot/workspace/planning-data/src/main/java/fr/manaken/plannif/repository/SeanceRepository.java) : typage de la clé primaire en `Long` (au lieu de `Integer`) et ajout de `@Modifying @Query` `deleteByPlanningId`.
+   - [Planning.java](file:///e:/Boulot/workspace/planning-data/src/main/java/fr/manaken/plannif/model/Planning.java) : configuration de `cascade = CascadeType.ALL, orphanRemoval = true` sur `seances` et `seancesNonPlanifiees`.
+   - [PlanningService.java](file:///e:/Boulot/workspace/planning-data/src/main/java/fr/manaken/plannif/service/PlanningService.java) : suppression propre ensembliste via `deleteSeancesByPlanningId` et `deleteSeancesNonPlanifieesByPlanningId` avant suppression du planning.
+   - [db.changelog-master.yaml](file:///e:/Boulot/workspace/planning-data/src/main/resources/db/changelog/db.changelog-master.yaml) : changeset 41 appliquant `ON DELETE CASCADE` sur `fk_seance_planning` et `fk_snp_planning`.
+
 
 
 
