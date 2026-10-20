@@ -237,3 +237,26 @@ La suite comprend désormais **69 tests unitaires et d'intégration** (100% au v
 - `PlannifDataApiClientTest` (8 tests) : Validation des appels HTTP avec MockRestServiceServer.
 - `MappersTest` (6 tests) : Validation des mappers MapStruct (dont mapping direct de `debut`, `fin` et `pinned` dans `SeanceDto`).
 - `PlannifApplicationTests` (1 test) : Chargement du contexte Spring Boot.
+
+---
+
+## 8. 🌐 Intégration Frontend (`plannifVue`)
+
+L'intégration de la résolution Timefold dans le client web React `plannifVue` a été mise en place :
+1. **Proxy Vite multi-target** ([vite.config.ts](file:///e:/Boulot/workspace/plannifVue/vite.config.ts)) :
+   - Redirection de `/planning/jobs` et `/planning/solve` vers `http://localhost:8080` (solveur Timefold `plannif`).
+   - Maintien du proxy CRUD (`/profs`, `/seances`, `/plannings`, etc.) vers `http://localhost:8081` (`planning-data`).
+2. **Couche API & Types** ([solver.types.ts](file:///e:/Boulot/workspace/plannifVue/src/features/planning/types/solver.types.ts) et [solver.api.ts](file:///e:/Boulot/workspace/plannifVue/src/features/planning/api/solver.api.ts)) :
+   - Soumission asynchrone non-bloquante (`POST /planning/jobs`).
+   - Streaming temps réel via Server-Sent Events (`EventSource` sur `GET /planning/jobs/{jobId}/progress`).
+   - Consultation d'état unitaire / polling de secours (`GET /planning/jobs/{jobId}`).
+   - Interruption manuelle (`POST /planning/jobs/{jobId}/stop`).
+3. **Hook React orchestrateur** ([useSolverJob.ts](file:///e:/Boulot/workspace/plannifVue/src/features/planning/hooks/useSolverJob.ts)) :
+   - Gestion d'état réactive (`idle`, `solving`, `completed`, `stopped`, `failed`).
+   - Bascule automatique en polling fallback en cas de rupture de flux SSE.
+   - Nettoyage automatique des timers et connexions au démontage.
+4. **Composants d'interface** :
+   - Bouton d'action *"Optimiser le planning"* dans le header de [PlanningPage.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/pages/PlanningPage/PlanningPage.tsx).
+   - Bannière informative en arrière-plan lorsque le calcul tourne et que la fenêtre modale est minimisée.
+   - Modale interactive [SolverProgressModal.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/SolverProgressModal/SolverProgressModal.tsx) affichant le score dur (faisabilité / conflits), le score souple (qualité) et le temps écoulé, avec bouton d'interruption manuelle et redirection automatique vers le planning sauvegardé.
+
