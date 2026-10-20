@@ -259,4 +259,9 @@ L'intégration de la résolution Timefold dans le client web React `plannifVue` 
    - Bouton d'action *"Optimiser le planning"* dans le header de [PlanningPage.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/pages/PlanningPage/PlanningPage.tsx).
    - Bannière informative en arrière-plan lorsque le calcul tourne et que la fenêtre modale est minimisée.
    - Modale interactive [SolverProgressModal.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/SolverProgressModal/SolverProgressModal.tsx) affichant le score dur (faisabilité / conflits), le score souple (qualité) et le temps écoulé, avec bouton d'interruption manuelle et redirection automatique vers le planning sauvegardé.
+5. **Ergonomie & Volet Latéral Diagnostic (Drawer)** :
+   - Remplacement des 4 volumineuses cartes statiques de KPIs par un volet latéral fluide à droite ([PlanningStats.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/PlanningStats/PlanningStats.tsx)), libérant plus de 220px de hauteur verticale pour le calendrier.
+   - Bouton d'en-tête *"Santé du planning"* avec badge dynamique d'alertes (`warning` si conflits, `success` si 100% conforme).
+   - Onglets de filtrage rapide (Professeurs, Classes & Repas, Salles, Matières) avec interaction au clic pour zoomer et filtrer directement la séance dans la grille d'emploi du temps.
+
 
