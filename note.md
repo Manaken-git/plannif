@@ -263,5 +263,12 @@ L'intégration de la résolution Timefold dans le client web React `plannifVue` 
    - Remplacement des 4 volumineuses cartes statiques de KPIs par un volet latéral fluide à droite ([PlanningStats.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/PlanningStats/PlanningStats.tsx)), libérant plus de 220px de hauteur verticale pour le calendrier.
    - Bouton d'en-tête *"Santé du planning"* avec badge dynamique d'alertes (`warning` si conflits, `success` si 100% conforme).
    - Onglets de filtrage rapide (Professeurs, Classes & Repas, Salles, Matières) avec interaction au clic pour zoomer et filtrer directement la séance dans la grille d'emploi du temps.
+6. **Saisie Rapide & Réaménagement d'Horaires (Post-Solve)** :
+   - **Piste C — Micro-actions au survol** ([SessionCard.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/SessionCard/SessionCard.tsx)) : boutons discrets `[-1h]` et `[+1h]` au hover pour décaler instantanément une séance sans ouvrir de dialogue, bouton cadenas `[🔒/🔓]` pour verrouiller/déverrouiller, et bouton raccourci popover `[⏱️]`.
+   - **Piste A — Popover Compact d'Édition Rapide** ([QuickReschedulePopover.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/QuickReschedulePopover/QuickReschedulePopover.tsx)) : popover contextuel ancré sous la séance comprenant la sélection du jour (pills L/M/M/J/V), les créneaux standards prédéfinis (Matin 8h, 9h, 10h, Après-midi 13h30, 14h30, etc.), saisie fine `HH:mm`, et bascule d'épinglage.
+   - **Piste B — Drag & Drop direct sur la grille** ([CalendarGrid.tsx](file:///e:/Boulot/workspace/plannifVue/src/features/planning/components/CalendarGrid/CalendarGrid.tsx)) : glisser-déposer natif HTML5 sur les colonnes des jours avec magnétisme par pas de 30 minutes, préservation stricte de la durée de la séance, et feedback visuel de survol de zone (`is-drag-over`).
+   - **Persistance & Épinglage (PlanningPin)** : le champ `pinned: boolean` est propagé à l'API backend (`@PlanningPin` dans Timefold), assurant que les ajustements manuels de l'utilisateur restent figés lors des relances ultérieures du solveur.
+   - **Synchronisation d'état réactive (Optimistic UI)** : synchronisation immédiate des modifications (`updateSessionInState`) à la fois sur l'état global `seances` et dans le planning sélectionné `plannings[id].seances`, garantissant un rafraîchissement visuel instantané de l'emploi du temps sans latence ni désynchronisation.
+
 
 
