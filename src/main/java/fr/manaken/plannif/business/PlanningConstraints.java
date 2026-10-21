@@ -217,6 +217,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .filter(s -> s.getSalle() != null && s.getDebut() != null && s.getFin() != null)
                 .join(Seance.class,
                         equal(Seance::getSalle),
+                        equal(s -> s.getDebut() != null ? s.getDebut().toLocalDate() : null),
                         lessThan(Seance::getId))
                 .filter((s1, s2) -> s1.getDebut() != null && s1.getFin() != null
                         && s2.getDebut() != null && s2.getFin() != null
@@ -231,6 +232,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .filter(s -> s.getProfesseur() != null && s.getDebut() != null && s.getFin() != null)
                 .join(Seance.class,
                         equal(Seance::getProfesseur),
+                        equal(s -> s.getDebut() != null ? s.getDebut().toLocalDate() : null),
                         lessThan(Seance::getId))
                 .filter((s1, s2) -> s1.getDebut() != null && s1.getFin() != null
                         && s2.getDebut() != null && s2.getFin() != null
@@ -245,6 +247,7 @@ public class PlanningConstraints implements ConstraintProvider {
                 .filter(s -> s.getClasse() != null && s.getDebut() != null && s.getFin() != null)
                 .join(Seance.class,
                         equal(Seance::getClasse),
+                        equal(s -> s.getDebut() != null ? s.getDebut().toLocalDate() : null),
                         lessThan(Seance::getId))
                 .filter((s1, s2) -> s1.getDebut() != null && s1.getFin() != null
                         && s2.getDebut() != null && s2.getFin() != null
@@ -263,6 +266,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         lessThan(Seance::getFin, Seance::getDebut))
                 .ifNotExists(Seance.class,
                         equal((s1, s2) -> s1.getProfesseur(), Seance::getProfesseur),
+                        equal((s1, s2) -> s1.getFin().toLocalDate(), s -> s.getDebut().toLocalDate()),
                         lessThan((s1, s2) -> s1.getFin(), Seance::getDebut),
                         greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
                 .filter((s1, s2) -> ChronoUnit.MINUTES.between(s1.getFin(),
@@ -352,21 +356,23 @@ public class PlanningConstraints implements ConstraintProvider {
     }
 
     public Constraint roomEquipmentMatch(ConstraintFactory factory) {
-        return factory.forEach(Seance.class)
-                .filter(seance -> seance.getSalle() != null && seance.getClasse() != null && seance.getMatiere() != null)
+        var directStream = factory.forEach(Seance.class)
+                .filter(seance -> seance.getSalle() != null && seance.getRequiredRoomType() != null)
+                .filter(seance -> seance.getSalle().getType() == null
+                        || !seance.getRequiredRoomType().equalsIgnoreCase(seance.getSalle().getType()));
+
+        var fallbackStream = factory.forEach(Seance.class)
+                .filter(seance -> seance.getSalle() != null && seance.getRequiredRoomType() == null
+                        && seance.getClasse() != null && seance.getMatiere() != null)
                 .join(MatiereClasseConfig.class,
                         Joiners.equal(Seance::getClasse, MatiereClasseConfig::getClasse),
                         Joiners.equal(Seance::getMatiere, MatiereClasseConfig::getMatiere))
-                .filter((seance, config) -> {
-                    String requiredType = seance.getRequiredRoomType() != null
-                            ? seance.getRequiredRoomType()
-                            : config.getTypeSalleRequis();
-                    if (requiredType == null) {
-                        return false;
-                    }
-                    return seance.getSalle().getType() == null
-                            || !requiredType.equalsIgnoreCase(seance.getSalle().getType());
-                })
+                .filter((seance, config) -> config.getTypeSalleRequis() != null
+                        && (seance.getSalle().getType() == null
+                        || !config.getTypeSalleRequis().equalsIgnoreCase(seance.getSalle().getType())))
+                .map((seance, config) -> seance);
+
+        return directStream.concat(fallbackStream)
                 .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(ROOM_EQUIPMENT_MATCH);
     }
@@ -384,6 +390,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         lessThan(Seance::getFin, Seance::getDebut))
                 .ifNotExists(Seance.class,
                         equal((s1, s2) -> s1.getClasse(), Seance::getClasse),
+                        equal((s1, s2) -> s1.getDebut().toLocalDate(), s -> s.getDebut().toLocalDate()),
                         lessThan((s1, s2) -> s1.getFin(), Seance::getDebut),
                         greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
                 .filter((s1, s2) -> {
@@ -416,6 +423,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         lessThan(Seance::getFin, Seance::getDebut))
                 .ifNotExists(Seance.class,
                         equal((s1, s2) -> s1.getClasse(), Seance::getClasse),
+                        equal((s1, s2) -> s1.getFin().toLocalDate(), s -> s.getDebut().toLocalDate()),
                         lessThan((s1, s2) -> s1.getFin(), Seance::getDebut),
                         greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
                 .filter((s1, s2) -> {
@@ -474,6 +482,7 @@ public class PlanningConstraints implements ConstraintProvider {
                         lessThan(Seance::getFin, Seance::getDebut))
                 .ifNotExists(Seance.class,
                         equal((s1, s2) -> s1.getProfesseur(), Seance::getProfesseur),
+                        equal((s1, s2) -> s1.getDebut().toLocalDate(), s -> s.getDebut().toLocalDate()),
                         lessThan((s1, s2) -> s1.getFin(), Seance::getDebut),
                         greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
                 .filter((s1, s2) -> {
@@ -497,6 +506,9 @@ public class PlanningConstraints implements ConstraintProvider {
     }
 
     public Constraint teacherTravelDistance(ConstraintFactory factory) {
+        var distantRooms = factory.forEach(DistanceSalle.class)
+                .filter(d -> d.getDistance() != null && d.getDistance() > 200 && d.getSalle1() != null && d.getSalle2() != null);
+
         return factory.forEach(Seance.class)
                 .filter(s -> s.getProfesseur() != null && s.getSalle() != null && s.getDebut() != null && s.getFin() != null)
                 .join(Seance.class,
@@ -504,12 +516,11 @@ public class PlanningConstraints implements ConstraintProvider {
                         equal(s -> s.getFin().toLocalDate(), s -> s.getDebut().toLocalDate()),
                         equal(Seance::getFin, Seance::getDebut))
                 .filter((s1, s2) -> !s1.getSalle().equals(s2.getSalle()))
-                .join(DistanceSalle.class,
+                .join(distantRooms,
                         filtering((s1, s2, dist) ->
                                 (dist.getSalle1().equals(s1.getSalle()) && dist.getSalle2().equals(s2.getSalle())) ||
                                 (dist.getSalle1().equals(s2.getSalle()) && dist.getSalle2().equals(s1.getSalle()))
                         ))
-                .filter((s1, s2, dist) -> dist.getDistance() != null && dist.getDistance() > 200)
                 .penalize(HardSoftScore.ONE_SOFT)
                 .asConstraint(TEACHER_TRAVEL_DISTANCE);
     }

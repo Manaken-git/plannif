@@ -206,6 +206,9 @@ public class SolverTest {
         seance2.setMatiere(m1);
         seance2.setDebut(debut); // Fixed time, same as seance1
 
+        seance1.setDatesDebutPossibles(planning.getDatesDebutPossibles());
+        seance2.setDatesDebutPossibles(planning.getDatesDebutPossibles());
+
         List<Seance> seances = new ArrayList<>();
         seances.add(seance1);
         seances.add(seance2);

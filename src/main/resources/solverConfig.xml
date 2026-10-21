@@ -1,14 +1,38 @@
 <solver xmlns="https://timefold.ai/xsd/solver" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="https://timefold.ai/xsd/solver https://timefold.ai/xsd/solver/solver.xsd">
+    <environmentMode>NON_REPRODUCIBLE</environmentMode>
     <solutionClass>fr.manaken.plannif.business.Planning</solutionClass>
     <entityClass>fr.manaken.plannif.model.Seance</entityClass>
     <scoreDirectorFactory>
         <constraintProviderClass>fr.manaken.plannif.business.PlanningConstraints</constraintProviderClass>
     </scoreDirectorFactory>
-    <constructionHeuristic/>
+
+    <termination>
+        <spentLimit>PT120S</spentLimit>
+        <unimprovedSpentLimit>PT20S</unimprovedSpentLimit>
+    </termination>
+
+    <constructionHeuristic>
+        <queuedEntityPlacer>
+            <entitySelector id="placerEntitySelector">
+                <cacheType>PHASE</cacheType>
+            </entitySelector>
+            <changeMoveSelector>
+                <entitySelector mimicSelectorRef="placerEntitySelector"/>
+                <valueSelector variableName="debut"/>
+            </changeMoveSelector>
+            <changeMoveSelector>
+                <entitySelector mimicSelectorRef="placerEntitySelector"/>
+                <valueSelector variableName="professeur"/>
+            </changeMoveSelector>
+            <changeMoveSelector>
+                <entitySelector mimicSelectorRef="placerEntitySelector"/>
+                <valueSelector variableName="salle"/>
+            </changeMoveSelector>
+        </queuedEntityPlacer>
+    </constructionHeuristic>
+
     <localSearch>
-        <termination>
-            <secondsSpentLimit>120</secondsSpentLimit>
-        </termination>
+        <localSearchType>LATE_ACCEPTANCE</localSearchType>
     </localSearch>
 </solver>

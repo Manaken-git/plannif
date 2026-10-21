@@ -63,7 +63,8 @@ graph LR
 - URL service distant `plannif-data` : `http://localhost:8081/planning-data` (`plannif-data.api.base-url`)
 - Paramètres métier configurables :
   - `planning.standard-session-duration-hours` : `2.0` (heures par défaut par séance lors de la génération)
-  - `planning.solver.spent-limit-seconds` : `120` (temps max solver)
+  - `planning.solver.spent-limit-seconds` : `30` (temps max solver par défaut)
+  - `planning.solver.unimproved-spent-limit-seconds` : `8` (arrêt anticipé sur stagnation si aucune amélioration après 8 secondes)
 
 ---
 
@@ -276,6 +277,226 @@ L'intégration de la résolution Timefold dans le client web React `plannifVue` 
    - [PlanningService.java](file:///e:/Boulot/workspace/planning-data/src/main/java/fr/manaken/plannif/service/PlanningService.java) : suppression propre ensembliste via `deleteSeancesByPlanningId` et `deleteSeancesNonPlanifieesByPlanningId` avant suppression du planning.
    - [db.changelog-master.yaml](file:///e:/Boulot/workspace/planning-data/src/main/resources/db/changelog/db.changelog-master.yaml) : changeset 41 appliquant `ON DELETE CASCADE` sur `fk_seance_planning` et `fk_snp_planning`.
 
+---
 
+## 9. ⚡ Optimisation des Performances Timefold (Phase 1 — Quick Wins)
 
+Afin d'éviter des temps de résolution excessivement longs et des attentes inutiles côté frontend :
+1. **Terminaison intelligente sur stagnation (`unimprovedSpentLimit`)** :
+   - Ajout d'une terminaison ISO-8601 `<unimprovedSpentLimit>PT8S</unimprovedSpentLimit>` dans [solverConfig.xml](file:///e:/Boulot/workspace/plannif/src/main/resources/solverConfig.xml).
+   - Paramétrable via `planning.solver.unimproved-spent-limit-seconds: 8` et pris en compte dynamiquement par [TimefoldSolverConfig.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/config/TimefoldSolverConfig.java).
+   - Dès qu'aucune amélioration du score n'est constatée pendant 8 secondes consécutives, le solveur termine immédiatement au lieu de tourner dans le vide jusqu'au timeout maximal.
+2. **Réduction du timeout maximal par défaut** :
+   - Passage du timeout par défaut de 120s (et 1200s dans `application.yml`) à **30s** (`<spentLimit>PT30S</spentLimit>` / `planning.solver.spent-limit-seconds: 30`).
+3. **Note sur l'édition Community vs Enterprise** :
+   - `moveThreadCount` (multithreading CPU) requiert Timefold Solver Enterprise Edition (`timefold-solver-enterprise-core`). Pour la version Community Open-Source, le moteur opère en single-thread déterministe avec gain de temps garanti par l'arrêt sur stagnation.
+
+### Phase 2 — Nettoyage & Réduction de l'Espace de Recherche (Search Space)
+1. **Exclusion des vacances scolaires à la génération des dates candidates** :
+   - Dans [PlanningService.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/service/PlanningService.java), méthode `generateDatesDebutPossiblesIfNeeded` : vérification stricte via `isDateDuringVacances` pour ne jamais proposer de créneaux candidats tombant sur les plages de `Vacances`.
+   - Évite au solveur de générer et d'explorer des milliers d'affectations absurdes pendant les congés pour ensuite devoir les rejeter via `holidayConflict`.
+2. **Pré-assignation des professeurs uniques qualifiés** :
+   - Lors de la génération des séances (`generateSeancesIfNeeded`) ou de la liaison des séances existantes (`buildPlanning`), si une matière n'a qu'un unique professeur qualifié parmi `planning.getProfesseurs()`, ce professeur est assigné directement sur la séance.
+   - Élimine le gaspillage de l'heuristique de construction qui tentait tous les autres professeurs inaptes avant de subir la pénalité `teacherMustBeQualified`.
+3. **Pré-remplissage du type de salle requis (`typeSalleRequis`)** :
+   - Affecté directement sur `seance.setTypeSalleRequis(config.getTypeSalleRequis())` dès la préparation, permettant un filtrage direct sans dépendre systématiquement de jointures à chaud.
+
+### Phase 3 — Optimisation des Flux de Contraintes (Constraint Streams)
+1. **Indexation temporelle stricte par date sur les 4 clauses `ifNotExists`** :
+   - Dans `teacherMaxGap`, `studentMaxGap`, `teacherLunchBreak` et `studentLunchBreak` : ajout du critère `equal((s1, s2) -> s1.getFin().toLocalDate(), s -> s.getDebut().toLocalDate())` dans la sous-clause `ifNotExists(Seance.class)`.
+   - **Gain** : Timefold indexe désormais la 3ème séance par `(ressource, date)` au lieu de parcourir toutes les séances de l'année pour vérifier l'absence d'intermédiaire, allégeant drastiquement le réseau Rete/Bavet.
+2. **Court-circuit $O(1)$ dans `roomEquipmentMatch`** :
+   - Traitement scindé en deux flux concaténés : un flux direct $O(1)$ pour les séances disposant de leur `requiredRoomType` précalculé (sans aucune jointure), et un flux de repli avec jointure `MatiereClasseConfig` pour les données brutes ou non enrichies.
+3. **Pré-filtrage des distances dans `teacherTravelDistance`** :
+   - Le flux `DistanceSalle.class` est pré-filtré sur `distance > 200` avant la jointure avec les paires de séances consécutives.
+   - **Gain** : Élimine le produit cartésien sur l'ensemble des paires de salles proches du campus.
+
+---
+
+## 10. 🛠️ Résolution du Bug Hibernate dans `planning-data` (`orphanRemoval`)
+
+### Problème
+Lors de la persistance du planning à l'issue du solve (`POST /planning`), Hibernate levait l'exception :
+```
+org.hibernate.HibernateException: A collection with orphan deletion was no longer referenced by the owning entity instance: fr.manaken.plannif.model.Planning.seances
+```
+
+### Cause Racine
+Dans l'entité JPA `Planning` de `planning-data`, les relations `@OneToMany` sont configurées avec `orphanRemoval = true` :
+- `@OneToMany(mappedBy = "planning", cascade = CascadeType.ALL, orphanRemoval = true) private List<Seance> seances;`
+- `@OneToMany(mappedBy = "planning", cascade = CascadeType.ALL, orphanRemoval = true) private List<SeanceNonPlanifiee> seancesNonPlanifiees;`
+
+Avec le `@Setter` par défaut généré par Lombok, l'appel `entity.setSeances(seanceEntities)` dans `PlanningService.savePlanning` réassignait la référence interne de la liste. Lorsque l'entité est déjà attachée/chargée depuis la base (`dataFetcher.getPlanning(...)`), Hibernate remplace la liste par sa propre collection gérée (`PersistentBag`). Écraser cette référence déréférence le `PersistentBag`, ce qui déclenche immédiatement cette exception de sécurité lors du flush de transaction.
+
+### Correction Appliquée
+1. **Implémentation explicite des setters dans `Planning.java`** :
+   - Remplacement de l'affectation directe par `clear()` et `addAll()` in-place :
+     ```java
+     public void setSeances(List<Seance> seances) {
+         if (this.seances == null) {
+             this.seances = new ArrayList<>();
+         } else {
+             this.seances.clear();
+         }
+         if (seances != null) {
+             this.seances.addAll(seances);
+         }
+     }
+     ```
+   - Appliqué également à `setSeancesNonPlanifiees`.
+   - La collection `PersistentBag` gérée par Hibernate reste ainsi référencée, et `orphanRemoval` s'occupe de supprimer automatiquement les séances orphelines.
+2. **Nettoyage dans `PlanningService.java` (`planning-data`)** :
+   - Suppression de l'appel manuel `dataPusher.deleteSeancesNonPlanifieesByPlanningId(entity.getId())` devenu redondant et en conflit avec le cycle de vie géré par Hibernate.
+
+---
+
+## 11. 🚀 Phase 4 — Déblocage de l'Heuristique de Construction (Heuristic Scaling & Environment Mode)
+
+### Symptôme observé
+Sur un jeu de données plus réaliste (324 séances, 972 variables, 685 valeurs candidates) :
+```
+DefaultConstructionHeuristicPhase terminated early with step count (32).
+The solution may not be fully initialized.
+Construction Heuristic phase (0) ended: time spent (30004), best score (-2hard/-1260soft), move evaluation speed (46992/sec), step total (32).
+environment mode (PHASE_ASSERT)
+```
+Seulement 32 séances sur 324 étaient initialisées en 30 secondes ! Les 292 autres séances restaient non assignées (`null`), et la phase de recherche locale (`Local Search`) n'avait même pas pu démarrer.
+
+### Diagnostic Technique
+1. **Produit Cartésien par défaut des variables multiples** :
+   Chaque séance possède 3 variables de planification : `professeur`, `debut`, `salle`.
+   Par défaut, Timefold évalue toutes les combinaisons simultanément pour chaque entité :
+   $$\text{Combinaisons par séance} = |\text{professeurs}| \times |\text{dates}| \times |\text{salles}| \approx 15 \times 650 \times 20 = 195\,000 \text{ mouvements / entité}$$
+   À ~47 000 mouvements/sec, évaluer une seule entité prenait 4 secondes. En 30 secondes, le solveur n'avait le temps d'initialiser que 32 entités !
+2. **Ralentissement par `environment mode (PHASE_ASSERT)`** :
+   Lors d'une exécution dans un IDE ou avec l'option JVM `-ea` (assertions activées), Timefold basculait automatiquement en mode `PHASE_ASSERT` qui recalcule et vérifie l'intégralité du score à chaque étape, divisant le débit par 2 à 3.
+
+### Optimisations Appliquées
+1. **Heuristique de Construction Séquentielle via `queuedEntityPlacer`** :
+   Dans [solverConfig.xml](file:///e:/Boulot/workspace/plannif/src/main/resources/solverConfig.xml), configuration d'une sélection séquentielle des variables par entité avec réplication mimic (`mimicSelectorRef="placerEntitySelector"`) :
+   - Étape 1 : Choix du professeur qualifié (15 combinaisons)
+   - Étape 2 : Choix du créneau horaire compatible (650 combinaisons)
+   - Étape 3 : Choix de la salle adéquate libre (20 combinaisons)
+   - **Gain mathématique** : Passage de $O(P \times D \times S)$ ($195\,000$ mouvements/entité) à $O(P + D + S)$ (**$685$ mouvements/entité**).
+   - **Résultat** : L'initialisation complète des 324 séances passe de **~20 minutes à moins de 4 secondes** !
+2. **Activation de la Recherche Locale (`Local Search` - Late Acceptance)** :
+   Une fois les 324 séances initialisées en 3-4 secondes, les 26 secondes restantes du budget sont intégralement allouées à la méta-heuristique `Late Acceptance` pour résoudre les conflits durs restants et maximiser les préférences douces.
+3. **Mode d'Environnement Dédié à la Performance (`NON_REPRODUCIBLE`)** :
+   Défini dans `solverConfig.xml`, `application.yml` (`planning.solver.environment-mode: NON_REPRODUCIBLE`) et pris en charge dynamiquement par `TimefoldSolverConfig.java`. Évite toute pénalité de recalcul de contrôle.
+
+---
+
+## 12. ⚡ Phase 5 — Indexation Temporelle des Conflits Majeurs (`roomConflict`, `teacherConflict`, `studentGroupConflict`)
+
+### Analyse des Métriques de Recherche Locale
+Après le déblocage de l'heuristique de construction (qui s'exécute désormais en **643 ms** à **340 796 mouvements/sec** et initialise l'intégralité des séances) :
+- En 29,4 secondes de recherche locale, le score s'est effondré de **-58 495 hard** à **-153 hard** (élimination de plus de 99,7 % des conflits).
+- Toutefois, la vitesse de calcul en recherche locale était retombée à **7 074 mouvements/sec** (contre 340 000/sec en CH).
+
+### Cause Identifiée
+Dans les 3 contraintes de conflit dur fondamentales (`roomConflict`, `teacherConflict`, `studentGroupConflict`), le `.join(Seance.class)` associait toutes les séances de l'année pour une même salle, un même professeur ou une même classe, sans condition de date sur le join :
+- Pour 100 séances d'une même ressource sur l'année, le nœud de jointure conservait $100 \times 99 / 2 = 4\,950$ paires en mémoire et évaluait leur chevauchement temporel à chaque mouvement.
+- Deux séances ne peuvent se chevaucher que si elles ont lieu le **même jour** (séances intra-journalières de 1 à 2 heures).
+
+### Correction Appliquée
+Dans [PlanningConstraints.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/business/PlanningConstraints.java) :
+- Ajout de la clé de jointure d'égalité de date sur les 3 contraintes :
+  ```java
+  equal(s -> s.getDebut() != null ? s.getDebut().toLocalDate() : null)
+  ```
+- **Gain** : Timefold indexe désormais les jointures par `(ressource, date)`. Le volume de paires dans chaque nœud de jointure s'effondre de ~99 %, démultipliant le débit d'évaluation de la recherche locale pour converger encore plus rapidement vers `0 hard`.
+
+---
+
+## 13. 🎯 Phase 6 — Éradication de la "Capacité Fantôme" & Alignement Heuristique
+
+### Diagnostic du Dump des 39 Pénalités Dures Résiduelles
+L'analyse de l'explication de score détaillée du solve sur le grand jeu de données (324 séances, 972 variables, 685 créneaux candidats) a révélé la décomposition exacte des -39 hard :
+- **`Student group presence`** : **31 violations** (79,5 % des pénalités)
+- **`Subject class period`** : **6 violations** (15,4 % des pénalités)
+- **`Student group conflict`** : 1 violation
+- **`Teacher must be qualified for the subject`** : 1 violation
+- **Toutes les autres contraintes** : **0 violation** (`Room conflict`, `Teacher conflict`, `Room capacity`, `Room equipment`, `Teacher unavailability`, `Holiday conflict`, etc. sont 100 % satisfaites).
+
+### Analyse Architecturale : Le Piège de la Capacité Fantôme
+1. **La fausse équivalence des pénalités à 1 Hard** :
+   Dans un modèle où toutes les contraintes dures pèsent `-1hard`, placer une séance dans une semaine vide où les élèves sont absents (stage, alternance) ne coûte que `-1hard` (`Student group presence`).
+   À l'inverse, ramener cette séance dans la semaine de présence où les ressources sont fortement sollicitées risque d'engendrer un conflit enseignant (`-1hard`) ou des pénalités douces (`Student max gap`, etc.).
+   Pour le solveur, `-1hard / 0soft` est strictement supérieur à `-1hard / -150soft` : la recherche locale se retrouve piégée dans un optimum local où 37 séances sont "cachées" dans des semaines désertes.
+2. **L'aveuglement temporel de la Construction Heuristic** :
+   Dans l'ordre initial (`professeur` -> `debut` -> `salle`), le professeur était choisi alors que `debut` était encore `null`. L'heuristique ne pouvait donc évaluer aucune incompatibilité d'agenda enseignant lors du choix de celui-ci.
+
+### Optimisations Appliquées
+1. **Inversion de l'ordre d'assignation dans [solverConfig.xml](file:///e:/Boulot/workspace/plannif/src/main/resources/solverConfig.xml)** :
+   Ordre séquentiel révisé :
+   - **Étape 1 : `debut`** : Sélection du créneau temporel en premier. Les contraintes temporelles (`studentGroupPresence`, `subjectClassPeriodConstraint`, `holidayConflict`) sont évaluées dès le départ, positionnant immédiatement les séances dans leur semaine de présence réelle.
+   - **Étape 2 : `professeur`** : Le créneau étant connu, Timefold évalue directement les disponibilités de l'enseignant (`teacherConflict`, `teacherUnavailability`, `teacherDayOff`, etc.).
+   - **Étape 3 : `salle`** : Avec l'horaire et le professeur fixés, la salle compatible et libre est allouée.
+2. **Hiérarchisation des Poids Durs via `ConstraintWeightOverrides` dans [PlanningJobManager.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/service/job/PlanningJobManager.java)** :
+   Pour interdire au solveur de sacrifier la présence physique des élèves au profit de la facilité de placement :
+   - `Student group presence` : relevé à **`-10hard`** par défaut
+   - `Subject class period` : relevé à **`-10hard`** par défaut
+   - `Teacher must be qualified` : relevé à **`-10hard`** par défaut
+   Ces surcharges sont dynamiques (préservant les tests unitaires basés sur `ONE_HARD`) et empêchent définitivement le solveur d'utiliser des semaines d'absence comme variables d'ajustement.
+3. **Restitution des Logs d'Explication de Score** :
+   Ajout de `explanation.getSummary()` dans le log `onFinalSolution` de `PlanningJobManager` pour un suivi instantané de la répartition des pénalités à chaque fin de solve.
+
+---
+
+## 14. 🏁 Phase 7 — Validation du Recalage des Vacances & Égalisation des Poids Physiques
+
+### Résultats Majeurs Obtenus (Solve ID 31)
+Suite à l'ajustement des vacances (Toussaint ramenée à 1 semaine) et au recalage des périodes de présence des classes `TermB` et `CAPA` :
+- **`Student group presence` : 0 VIOLATION !** (Passé de 31 à 22, puis désormais à **0** : 100 % des 324 séances sont planifiées dans des périodes où les classes sont réellement présentes).
+- **`Teacher must be qualified` : 0 VIOLATION !**
+- **`Holiday conflict` : 0 VIOLATION !**
+- **Vitesse Construction Heuristic** : **367 ms** à **600 824 mouvements/sec** (nouveau record absolu).
+- **Score Hard résiduel** : tombé de -304 hard à **-56 hard**.
+
+### Vérification Technique des Données (Analyse Post-Solve)
+1. **Dernier point de friction sur les dates : `MatiereClasseConfig` de CAPA** :
+   - Présence 2 de la classe CAPA : `04/01/2027 -> 17/01/2027`.
+   - Les 5 configs de matières de CAPA (`Anglais`, `Mathématique`, `Biologie`, `Economie`, `Vie de classe`) ont toutes leur `dateFin` fixée au `30/12/2026`.
+   - **Conséquence** : Les 2 séances planifiées en janvier 2027 déclenchent la pénalité `Subject class period` (`-20 hard`).
+   - **Action** : Repousser la `dateFin` des configs de CAPA au-delà de janvier 2027 (ex: `31/01/2027` ou `30/06/2027`).
+
+2. **Égalisation Totale des Poids d'Impossibilité Physique** :
+   - Afin d'éliminer définitivement les 24 `Student group conflict`, 7 `Room conflict` et 5 `Teacher conflict`, tous les conflits physiques absolus sont désormais verrouillés au même niveau (`10hard`) dans [PlanningJobManager.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/service/job/PlanningJobManager.java) :
+     - `ROOM_CONFLICT` = `10hard`
+     - `TEACHER_CONFLICT` = `10hard`
+     - `STUDENT_GROUP_CONFLICT` = `10hard`
+     - `HOLIDAY_CONFLICT` = `10hard`
+     - `STUDENT_GROUP_PRESENCE` = `10hard`
+     - `SUBJECT_CLASS_PERIOD` = `10hard`
+     - `TEACHER_MUST_BE_QUALIFIED` = `10hard`
+   - Le solveur n'a ainsi plus aucun arbitrage préférentiel lui permettant de superposer deux séances pour satisfaire une autre contrainte.
+
+---
+
+## 15. 🏆 Phase 8 — Faisabilité Parfaite (0 Hard) & Prolongation de l'Optimisation Douce
+
+### Succès Majeur (Solve ID 33)
+À l'issue de l'extension des dates de fin de matières pour CAPA et de l'équilibrage des poids :
+- **Score Hard : 0 HARD ! (Zéro point de pénalité résiduel).**
+- L'intégralité des 17 contraintes dures du cahier des charges sont **100 % respectées** :
+  - 0 conflit de salle
+  - 0 conflit d'enseignant
+  - 0 conflit de classe
+  - 0 cours hors présence
+  - 0 professeur non qualifié
+  - 0 cours pendant les vacances
+  - 0 dépassement de capacité ou d'équipement de salle
+  - 0 violation de rythme ou de pause déjeuner imposée
+
+### Déverrouillage de l'Optimisation Douce (Soft Score)
+Dans le solve précédent, le solveur s'était arrêté à $t = 65.2\text{s}$ car la balise `<bestScoreFeasible>true</bestScoreFeasible>` lui intimait de couper dès l'atteinte de `0 hard`, sans chercher à réduire les pénalités douces (`Student day start time` et `Student max gap`).
+
+**Ajustements appliqués :**
+1. **Suppression de `bestScoreFeasible` dans [solverConfig.xml](file:///e:/Boulot/workspace/plannif/src/main/resources/solverConfig.xml)** :
+   Le solveur n'interrompt plus sa recherche à `0 hard` et alloue le reste du temps disponible à condenser les emplois du temps des élèves et des enseignants.
+2. **Budget Temps & Condition d'Arrêt Intelligent** :
+   - `spentLimit` configuré à **120 secondes** (dans `solverConfig.xml` et `application.yml`).
+   - `unimprovedSpentLimit` configuré à **20 secondes** : Si pendant 20 secondes consécutives aucune amélioration du score doux n'est trouvée, le solveur s'arrête automatiquement.
+3. **Pré-affectation tournante des professeurs qualifiés** dans [PlanningService.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/service/PlanningService.java) :
+   Garantit que 100 % des séances démarrent avec un professeur qualifié dès le départ.
 

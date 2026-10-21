@@ -46,6 +46,18 @@ public class Seance {
     @PlanningVariable(valueRangeProviderRefs = "dateDebutRange")
     private java.time.LocalDateTime debut;
 
+    private java.util.List<java.time.LocalDateTime> datesDebutPossibles = new java.util.ArrayList<>();
+
+    public java.util.List<java.time.LocalDateTime> getPossibleDatesDebut() {
+        if (datesDebutPossibles != null && !datesDebutPossibles.isEmpty()) {
+            return datesDebutPossibles;
+        }
+        if (debut != null) {
+            return java.util.Collections.singletonList(debut);
+        }
+        return java.util.Collections.emptyList();
+    }
+
     private java.time.LocalDateTime fin;
 
     private Integer dureeMinutes;

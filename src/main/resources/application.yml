@@ -13,6 +13,8 @@ planning:
   teaching-weeks: 36
   standard-session-duration-hours: 2.0
   solver:
-    spent-limit-seconds: 1200
+    spent-limit-seconds: 120
+    unimproved-spent-limit-seconds: 20
+    environment-mode: NON_REPRODUCIBLE
 
 

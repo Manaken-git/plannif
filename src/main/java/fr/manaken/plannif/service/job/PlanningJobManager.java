@@ -33,7 +33,7 @@ public class PlanningJobManager {
     public PlanningJobManager(SolverManager<Planning, String> solverManager,
                               SolverFactory<Planning> solverFactory,
                               PlanningService planningService,
-                              @Value("${planning.solver.spent-limit-seconds:120}") long solverSpentLimitSeconds) {
+                              @Value("${planning.solver.spent-limit-seconds:30}") long solverSpentLimitSeconds) {
         this.solverManager = solverManager;
         this.solverFactory = solverFactory;
         this.planningService = planningService;
@@ -91,11 +91,19 @@ public class PlanningJobManager {
         planningService.generateCreneauxIfNeeded(problem);
         planningService.generateSeancesIfNeeded(problem);
 
+        Map<String, HardSoftScore> effectiveOverrides = new HashMap<>();
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.STUDENT_GROUP_PRESENCE, HardSoftScore.ofHard(10));
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.SUBJECT_CLASS_PERIOD, HardSoftScore.ofHard(10));
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.TEACHER_MUST_BE_QUALIFIED, HardSoftScore.ofHard(10));
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.ROOM_CONFLICT, HardSoftScore.ofHard(10));
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.TEACHER_CONFLICT, HardSoftScore.ofHard(10));
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.STUDENT_GROUP_CONFLICT, HardSoftScore.ofHard(10));
+        effectiveOverrides.put(fr.manaken.plannif.business.PlanningConstraintConfiguration.HOLIDAY_CONFLICT, HardSoftScore.ofHard(10));
+
         if (constraintWeightOverrides != null && !constraintWeightOverrides.isEmpty()) {
-            Map<String, HardSoftScore> overrides = new HashMap<>();
-            constraintWeightOverrides.forEach((name, scoreStr) -> overrides.put(name, HardSoftScore.parseScore(scoreStr)));
-            problem.setConstraintWeightOverrides(ai.timefold.solver.core.api.domain.solution.ConstraintWeightOverrides.of(overrides));
+            constraintWeightOverrides.forEach((name, scoreStr) -> effectiveOverrides.put(name, HardSoftScore.parseScore(scoreStr)));
         }
+        problem.setConstraintWeightOverrides(ai.timefold.solver.core.api.domain.solution.ConstraintWeightOverrides.of(effectiveOverrides));
 
         PlanningJobState state = PlanningJobState.builder()
                 .jobId(jobId)
@@ -162,7 +170,10 @@ public class PlanningJobManager {
             SolutionManager<Planning, HardSoftScore> solutionManager = SolutionManager.create(solverFactory);
             ScoreExplanation<Planning, HardSoftScore> explanation = solutionManager.explain(solution);
             state.setExplanation(buildExplanationMap(explanation));
-        } catch (Exception ignored) {}
+            log.info("Job {} final score explanation:\n{}", jobId, explanation.getSummary());
+        } catch (Exception e) {
+            log.warn("Failed to generate score explanation for job {}", jobId, e);
+        }
 
         Map<String, Object> data = new HashMap<>();
         data.put("jobId", jobId);

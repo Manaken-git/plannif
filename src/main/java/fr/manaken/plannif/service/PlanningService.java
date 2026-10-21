@@ -22,6 +22,7 @@ import fr.manaken.plannif.client.data.dto.PlanningDto;
 import fr.manaken.plannif.client.data.dto.CreneauDTO;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -204,6 +205,44 @@ public class PlanningService {
             }
         }
 
+        // Pré-renseignement du type de salle requis et pré-assignation des professeurs uniques sur les séances existantes non assignées
+        Map<String, String> requiredRoomTypes = new HashMap<>();
+        for (MatiereClasseConfig config : matiereClasseConfigs) {
+            if (config.getClasse() != null && config.getClasse().getId() != null
+                    && config.getMatiere() != null && config.getMatiere().getId() != null
+                    && config.getTypeSalleRequis() != null) {
+                requiredRoomTypes.put(config.getClasse().getId() + "_" + config.getMatiere().getId(), config.getTypeSalleRequis());
+            }
+        }
+
+        Map<Long, List<Professeur>> qualifiedProfsByMatiere = new HashMap<>();
+        for (Professeur prof : professeurs) {
+            if (prof.getMatieres() != null) {
+                for (Matiere m : prof.getMatieres()) {
+                    if (m != null && m.getId() != null) {
+                        qualifiedProfsByMatiere.computeIfAbsent(m.getId(), k -> new ArrayList<>()).add(prof);
+                    }
+                }
+            }
+        }
+
+        for (Seance s : seances) {
+            if (s.getTypeSalleRequis() == null && s.getClasse() != null && s.getClasse().getId() != null
+                    && s.getMatiere() != null && s.getMatiere().getId() != null) {
+                String req = requiredRoomTypes.get(s.getClasse().getId() + "_" + s.getMatiere().getId());
+                if (req != null) {
+                    s.setTypeSalleRequis(req);
+                }
+            }
+            if (s.getProfesseur() == null && s.getMatiere() != null && s.getMatiere().getId() != null) {
+                List<Professeur> qualified = qualifiedProfsByMatiere.get(s.getMatiere().getId());
+                if (qualified != null && qualified.size() == 1) {
+                    s.setProfesseur(qualified.get(0));
+                }
+            }
+        }
+
+        assignPossibleDatesToSeances(planning);
         return planning;
     }
 
@@ -221,6 +260,19 @@ public class PlanningService {
                     .collect(Collectors.toMap(Classe::getId, c -> c, (a, b) -> a));
             Map<Long, Matiere> matiereMap = planning.getMatieres().stream()
                     .collect(Collectors.toMap(Matiere::getId, m -> m, (a, b) -> a));
+
+            Map<Long, List<Professeur>> qualifiedProfsByMatiere = new HashMap<>();
+            if (planning.getProfesseurs() != null) {
+                for (Professeur prof : planning.getProfesseurs()) {
+                    if (prof.getMatieres() != null) {
+                        for (Matiere m : prof.getMatieres()) {
+                            if (m != null && m.getId() != null) {
+                                qualifiedProfsByMatiere.computeIfAbsent(m.getId(), k -> new ArrayList<>()).add(prof);
+                            }
+                        }
+                    }
+                }
+            }
 
             for (fr.manaken.plannif.model.MatiereClasseConfig config : planning.getMatiereClasseConfigs()) {
                 Classe classe = config.getClasse();
@@ -248,12 +300,20 @@ public class PlanningService {
 
                 int count = (int) Math.round((double) volPeriode / standardSessionDurationHours);
 
+                List<Professeur> qualified = (matiere.getId() != null) ? qualifiedProfsByMatiere.get(matiere.getId()) : null;
+
                 for (int i = 0; i < count; i++) {
                     Seance seance = new Seance();
                     seance.setId(seanceId++);
                     seance.setClasse(classe);
                     seance.setMatiere(matiere);
                     seance.setType(Seance.TypeSeance.COURS);
+                    if (qualified != null && !qualified.isEmpty()) {
+                        seance.setProfesseur(qualified.get(i % qualified.size()));
+                    }
+                    if (config.getTypeSalleRequis() != null) {
+                        seance.setTypeSalleRequis(config.getTypeSalleRequis());
+                    }
                     generatedSeances.add(seance);
                 }
             }
@@ -261,6 +321,7 @@ public class PlanningService {
         }
 
         generateVieDeClasseSeances(planning);
+        assignPossibleDatesToSeances(planning);
     }
 
     private void generateVieDeClasseSeances(Planning planning) {
@@ -512,6 +573,9 @@ public class PlanningService {
                         if (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
                             continue;
                         }
+                        if (isDateDuringVacances(date, planning.getVacances())) {
+                            continue;
+                        }
 
                         // 1h slots start times:
                         // 8h (except Monday)
@@ -544,10 +608,102 @@ public class PlanningService {
             }
             planning.setDatesDebutPossibles(new ArrayList<>(generated));
         }
+        assignPossibleDatesToSeances(planning);
+    }
+
+    public void assignPossibleDatesToSeances(Planning planning) {
+        if (planning == null || planning.getSeances() == null || planning.getSeances().isEmpty()) {
+            return;
+        }
+        List<LocalDateTime> globalDates = planning.getDatesDebutPossibles();
+        if (globalDates == null || globalDates.isEmpty()) {
+            return;
+        }
+
+        Map<Long, List<ClassePresence>> presencesByClasse = new HashMap<>();
+        if (planning.getClassePresences() != null) {
+            for (ClassePresence cp : planning.getClassePresences()) {
+                if (cp.getClasse() != null && cp.getClasse().getId() != null) {
+                    presencesByClasse.computeIfAbsent(cp.getClasse().getId(), k -> new ArrayList<>()).add(cp);
+                }
+            }
+        }
+
+        Map<String, MatiereClasseConfig> configMap = new HashMap<>();
+        if (planning.getMatiereClasseConfigs() != null) {
+            for (MatiereClasseConfig cfg : planning.getMatiereClasseConfigs()) {
+                if (cfg.getClasse() != null && cfg.getClasse().getId() != null
+                        && cfg.getMatiere() != null && cfg.getMatiere().getId() != null) {
+                    configMap.put(cfg.getClasse().getId() + "_" + cfg.getMatiere().getId(), cfg);
+                }
+            }
+        }
+
+        for (Seance seance : planning.getSeances()) {
+            Classe classe = seance.getClasse();
+            List<ClassePresence> presences = (classe != null && classe.getId() != null)
+                    ? presencesByClasse.get(classe.getId()) : null;
+
+            MatiereClasseConfig cfg = (classe != null && classe.getId() != null && seance.getMatiere() != null && seance.getMatiere().getId() != null)
+                    ? configMap.get(classe.getId() + "_" + seance.getMatiere().getId()) : null;
+
+            List<LocalDateTime> filtered = new ArrayList<>();
+            for (LocalDateTime dt : globalDates) {
+                LocalDate date = dt.toLocalDate();
+
+                // 1. Check ClassePresence
+                if (presences != null && !presences.isEmpty()) {
+                    boolean insidePresence = false;
+                    for (ClassePresence cp : presences) {
+                        if (cp.getDateDebut() != null && cp.getDateFin() != null
+                                && !date.isBefore(cp.getDateDebut()) && !date.isAfter(cp.getDateFin())) {
+                            insidePresence = true;
+                            break;
+                        }
+                    }
+                    if (!insidePresence) {
+                        continue;
+                    }
+                }
+
+                // 2. Check MatiereClasseConfig period
+                if (cfg != null) {
+                    if (cfg.getDateDebut() != null && date.isBefore(cfg.getDateDebut())) {
+                        continue;
+                    }
+                    if (cfg.getDateFin() != null && date.isAfter(cfg.getDateFin())) {
+                        continue;
+                    }
+                }
+
+                filtered.add(dt);
+            }
+
+            // Fallback: if no dates matched, use global dates to avoid empty value range
+            if (filtered.isEmpty()) {
+                filtered = new ArrayList<>(globalDates);
+            }
+
+            seance.setDatesDebutPossibles(filtered);
+        }
     }
 
     public void generateCreneauxIfNeeded(Planning planning) {
         generateDatesDebutPossiblesIfNeeded(planning);
+    }
+
+    private boolean isDateDuringVacances(LocalDate date, List<Vacances> vacances) {
+        if (vacances == null || vacances.isEmpty()) {
+            return false;
+        }
+        for (Vacances v : vacances) {
+            if (v.getDateDebut() != null && v.getDateFin() != null) {
+                if (!date.isBefore(v.getDateDebut()) && !date.isAfter(v.getDateFin())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     public void savePlanning(Planning planning) {

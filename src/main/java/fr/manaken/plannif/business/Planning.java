@@ -75,6 +75,26 @@ public class Planning {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private HardSoftScore score;
 
+    public void setDatesDebutPossibles(List<LocalDateTime> datesDebutPossibles) {
+        this.datesDebutPossibles = datesDebutPossibles;
+        distributeDatesToSeances();
+    }
+
+    public void setSeances(List<Seance> seances) {
+        this.seances = seances;
+        distributeDatesToSeances();
+    }
+
+    private void distributeDatesToSeances() {
+        if (this.seances != null && this.datesDebutPossibles != null && !this.datesDebutPossibles.isEmpty()) {
+            for (Seance s : this.seances) {
+                if (s.getDatesDebutPossibles() == null || s.getDatesDebutPossibles().isEmpty()) {
+                    s.setDatesDebutPossibles(new java.util.ArrayList<>(this.datesDebutPossibles));
+                }
+            }
+        }
+    }
+
     @JsonProperty("creneaux")
     public void setCreneauxFromJson(List<Map<String, Object>> creneauxJson) {
         if (creneauxJson != null) {
@@ -89,6 +109,7 @@ public class Planning {
                     } catch (Exception ignored) {}
                 }
             }
+            distributeDatesToSeances();
         }
     }
 }

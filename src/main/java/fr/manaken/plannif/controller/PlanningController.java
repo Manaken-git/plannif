@@ -29,7 +29,7 @@ public class PlanningController {
     private volatile Planning lastSolution;
 
     public PlanningController(PlanningService planningService,
-                              @Value("${planning.solver.spent-limit-seconds:120}") long solverSpentLimitSeconds) {
+                              @Value("${planning.solver.spent-limit-seconds:30}") long solverSpentLimitSeconds) {
         this.planningService = planningService;
         this.solverSpentLimitSeconds = solverSpentLimitSeconds;
     }
