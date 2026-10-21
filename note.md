@@ -212,6 +212,7 @@ Le solver évalue **30 contraintes** (14 Hard, 16 Soft / 17 Soft selon configura
 ### 3. `generateSeancesIfNeeded(Planning planning)`
 - À partir de `MatiereClasseConfig` :
   - Calcule `count = round(volumeHorairePeriode / standardSessionDurationHours)`.
+  - **Exclusion stricte de la matière `"Vie de classe"`** lors de la génération standard de cours : évite de créer des séances mobiles de type `COURS` pour la vie de classe.
   - Instancie les `Seance` avec `classe` et `matiere` assignées, `professeur`, `salle` et `debut` non initialisés (laissés au Solver).
 - Gestion des **Vie de Classe** :
   - Génère **2 séances `VIE_DE_CLASSE`** par période de présence de la classe : une séance pour le **premier jour (09h00 - 10h00)** ET une séance pour le **dernier jour (10h00 - 11h00)**.
@@ -220,7 +221,7 @@ Le solver évalue **30 contraintes** (14 Hard, 16 Soft / 17 Soft selon configura
     - `professeur` est assigné intelligemment : sélectionne en priorité le professeur référent principal (`PRINCIPAL`). Si indisponible (jour de repos `ProfesseurDayOff`, indisponibilité horaire, ou séance épinglée concurrente), bascule automatiquement sur un co-référent (`CO_REFERENT`).
     - `salle` est sélectionnée automatiquement : salle de type `COURS` de capacité adéquate et sans conflit avec une autre séance épinglée.
     - La séance est marquée `pinned = true`, interdisant à Timefold de déplacer le créneau et évitant tout goulot d'étranglement ou score infaisable.
-  - Réutilise les séances `VIE_DE_CLASSE` non planifiées existantes ou crée de nouvelles séances avec la matière auto-générée `"Vie de classe"`.
+  - Réutilise les séances `VIE_DE_CLASSE` existantes ou crée de nouvelles séances avec la matière auto-générée `"Vie de classe"`, et purge toute séance résiduelle non épinglée liée à la vie de classe.
 
 ---
 

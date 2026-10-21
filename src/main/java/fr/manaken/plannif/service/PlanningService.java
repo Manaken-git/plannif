@@ -289,6 +289,11 @@ public class PlanningService {
                     continue;
                 }
 
+                // "Vie de classe" is handled exclusively by generateVieDeClasseSeances (pinned to 1st/last day)
+                if (matiere.getNom() != null && "Vie de classe".equalsIgnoreCase(matiere.getNom().trim())) {
+                    continue;
+                }
+
                 Long volPeriode = config.getVolumeHorairePeriode();
                 if (volPeriode == null || volPeriode <= 0) {
                     continue;
@@ -330,7 +335,8 @@ public class PlanningService {
         }
 
         List<Seance> existingVdc = planning.getSeances().stream()
-                .filter(s -> s.getType() == Seance.TypeSeance.VIE_DE_CLASSE)
+                .filter(s -> s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        || (s.getMatiere() != null && "Vie de classe".equalsIgnoreCase(s.getMatiere().getNom())))
                 .collect(Collectors.toCollection(ArrayList::new));
 
         Matiere vdcMatiere = getOrCreateVieDeClasseMatiere(planning);
@@ -351,6 +357,11 @@ public class PlanningService {
                 ensureVieDeClasseSeance(planning, existingVdc, classe, presence.getLastDay(), 10, 11, vdcMatiere);
             }
         }
+
+        // Purge any leftover unpinned "Vie de classe" sessions (e.g. from obsolete configs or reloaded problems)
+        planning.getSeances().removeIf(s -> !s.isPinned()
+                && (s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                || (s.getMatiere() != null && "Vie de classe".equalsIgnoreCase(s.getMatiere().getNom()))));
     }
 
     private void ensureVieDeClasseSeance(Planning planning, List<Seance> unassignedPool, Classe classe,
@@ -360,7 +371,7 @@ public class PlanningService {
         int durationMinutes = (int) java.time.Duration.between(expectedStart, expectedEnd).toMinutes();
 
         Seance existingAssigned = planning.getSeances().stream().filter(s ->
-                s.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                (s.getType() == Seance.TypeSeance.VIE_DE_CLASSE || (s.getMatiere() != null && "Vie de classe".equalsIgnoreCase(s.getMatiere().getNom())))
                         && s.getClasse() != null && s.getClasse().getId().equals(classe.getId())
                         && expectedStart.equals(s.getDebut())
                         && expectedEnd.equals(s.getFin()))
@@ -368,6 +379,7 @@ public class PlanningService {
                 .orElse(null);
 
         if (existingAssigned != null) {
+            existingAssigned.setType(Seance.TypeSeance.VIE_DE_CLASSE);
             existingAssigned.setPinned(true);
             existingAssigned.setDureeMinutes(durationMinutes);
             if (existingAssigned.getProfesseur() == null) {
@@ -388,6 +400,7 @@ public class PlanningService {
                 .orElse(null);
 
         if (reusable != null) {
+            reusable.setType(Seance.TypeSeance.VIE_DE_CLASSE);
             if (reusable.getMatiere() == null) {
                 reusable.setMatiere(matiere);
             }

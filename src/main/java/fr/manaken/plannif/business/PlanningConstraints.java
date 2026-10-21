@@ -131,6 +131,7 @@ public class PlanningConstraints implements ConstraintProvider {
         return factory.forEach(Seance.class)
                 .filter(seance -> seance.getProfesseur() != null
                         && seance.getType() != Seance.TypeSeance.VIE_DE_CLASSE
+                        && (seance.getMatiere() == null || !"Vie de classe".equalsIgnoreCase(seance.getMatiere().getNom()))
                         && !seance.getProfesseur().getMatieres().contains(seance.getMatiere()))
                 .penalize(HardSoftScore.ONE_HARD)
                 .asConstraint(TEACHER_MUST_BE_QUALIFIED);
@@ -306,7 +307,9 @@ public class PlanningConstraints implements ConstraintProvider {
 
     public Constraint vieDeClasseTimingConstraint(ConstraintFactory factory) {
         return factory.forEach(Seance.class)
-                .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE && seance.getDebut() != null && seance.getFin() != null)
+                .filter(seance -> (seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        || (seance.getMatiere() != null && "Vie de classe".equalsIgnoreCase(seance.getMatiere().getNom())))
+                        && seance.getDebut() != null && seance.getFin() != null)
                 .ifNotExists(ClassePresence.class,
                         equal(Seance::getClasse, ClassePresence::getClasse),
                         filtering((seance, presence) -> presence.isValidVieDeClasse(seance.getDebut(), seance.getFin())))
@@ -316,7 +319,8 @@ public class PlanningConstraints implements ConstraintProvider {
 
     public Constraint vieDeClasseReferentConstraint(ConstraintFactory factory) {
         return factory.forEach(Seance.class)
-                .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                .filter(seance -> (seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        || (seance.getMatiere() != null && "Vie de classe".equalsIgnoreCase(seance.getMatiere().getNom())))
                         && seance.getClasse() != null
                         && seance.getClasse().getReferents() != null
                         && !seance.getClasse().getReferents().isEmpty()
@@ -328,7 +332,8 @@ public class PlanningConstraints implements ConstraintProvider {
 
     public Constraint vieDeClassePrincipalReferentPreference(ConstraintFactory factory) {
         return factory.forEach(Seance.class)
-                .filter(seance -> seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                .filter(seance -> (seance.getType() == Seance.TypeSeance.VIE_DE_CLASSE
+                        || (seance.getMatiere() != null && "Vie de classe".equalsIgnoreCase(seance.getMatiere().getNom())))
                         && seance.getClasse() != null
                         && seance.getClasse().getReferents() != null
                         && !seance.getClasse().getReferents().isEmpty()
