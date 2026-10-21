@@ -512,3 +512,23 @@ Dans le solve précédent, le solveur s'était arrêté à $t = 65.2\text{s}$ ca
 3. **Pré-affectation tournante des professeurs qualifiés** dans [PlanningService.java](file:///e:/Boulot/workspace/plannif/src/main/java/fr/manaken/plannif/service/PlanningService.java) :
    Garantit que 100 % des séances démarrent avec un professeur qualifié dès le départ.
 
+---
+
+## 16. 🎨 Phase 9 — Ergonomie & Lisibilité de l'Emploi du Temps (Frontend Vue)
+
+### Problématique
+Lorsque plus de 2 classes avaient des séances sur le même créneau horaire, les colonnes journalières divisaient l'espace disponible en sous-colonnes de ~40px de large, tronquant sévèrement les intitulés de matières, enseignants, classes et horaires.
+
+### Solutions Validées et Déployées
+1. **Semaine de 5 Jours par Défaut (Lundi - Vendredi)** :
+   - Élimination des samedis et dimanches vides par défaut, offrant un gain immédiat de **+40% de largeur** par colonne jour.
+   - Bouton toggle interactif `[ 5 jours | 7 jours ]` dans la barre rapide.
+   - Détection automatique intelligente : si des séances réelles sont planifiées le week-end, la vue 7 jours s'active automatiquement pour garantir qu'aucune séance n'est masquée.
+2. **Barre de Filtres Rapides par Classe (Pills)** :
+   - Bandeau horizontal immédiat `[ Toutes ] [ Term A ] [ Term B ] [ CAPA ]...` synchronisé en temps réel avec le filtre global.
+   - Permet en 1 clic de basculer sur l'emploi du temps dédié d'une classe pour des cartes en pleine largeur (ou 50% pour les demi-groupes TP).
+3. **Cartes Adaptatives & Survol Déployant (Hover Popout)** :
+   - En mode compact ($N \ge 2$ séances simultanées), les typographies et icônes s'ajustent pour préserver le confort visuel.
+   - Au survol (`:hover`), la carte s'élève avec un z-index supérieur (`z-index: 60`), s'élargit à 220px avec ombre portée profonde et révèle l'intégralité des informations sans nécessiter de clic.
+   - Détection de bord : si la carte se situe sur la moitié droite de la colonne, l'expansion s'effectue automatiquement vers la gauche pour éviter tout débordement d'écran.
+
