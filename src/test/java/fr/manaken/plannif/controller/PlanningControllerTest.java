@@ -125,7 +125,7 @@ class PlanningControllerTest {
         planningService.generateDatesDebutPossiblesIfNeeded(planning);
 
         assertThat(planning.getDatesDebutPossibles()).isNotEmpty();
-        assertThat(planning.getDatesDebutPossibles()).hasSize(44);
+        assertThat(planning.getDatesDebutPossibles()).hasSize(35);
 
         LocalDateTime first = planning.getDatesDebutPossibles().get(0);
         assertThat(first).isEqualTo(LocalDateTime.of(2024, 2, 12, 9, 0));

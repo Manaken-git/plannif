@@ -1,6 +1,7 @@
 package fr.manaken.plannif.model;
 
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
+import ai.timefold.solver.core.api.domain.valuerange.ValueRangeProvider;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
 
 import lombok.Getter;
@@ -43,11 +44,12 @@ public class Seance {
 
     
     
-    @PlanningVariable(valueRangeProviderRefs = "dateDebutRange")
+    @PlanningVariable(valueRangeProviderRefs = "seanceDateDebutRange")
     private java.time.LocalDateTime debut;
 
     private java.util.List<java.time.LocalDateTime> datesDebutPossibles = new java.util.ArrayList<>();
 
+    @ValueRangeProvider(id = "seanceDateDebutRange")
     public java.util.List<java.time.LocalDateTime> getPossibleDatesDebut() {
         if (datesDebutPossibles != null && !datesDebutPossibles.isEmpty()) {
             return datesDebutPossibles;
@@ -55,7 +57,7 @@ public class Seance {
         if (debut != null) {
             return java.util.Collections.singletonList(debut);
         }
-        return java.util.Collections.emptyList();
+        return java.util.Collections.singletonList(java.time.LocalDateTime.of(2026, 9, 1, 8, 0));
     }
 
     private java.time.LocalDateTime fin;

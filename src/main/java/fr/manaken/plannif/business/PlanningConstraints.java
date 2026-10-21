@@ -433,8 +433,8 @@ public class PlanningConstraints implements ConstraintProvider {
                         greaterThan((s1, s2) -> s2.getDebut(), Seance::getDebut))
                 .filter((s1, s2) -> {
                     long gap = ChronoUnit.MINUTES.between(s1.getFin(), s2.getDebut());
-                    boolean isLunchGap = s1.getFin().toLocalTime().isAfter(LocalTime.of(11, 0))
-                            && s2.getDebut().toLocalTime().isBefore(LocalTime.of(14, 30))
+                    boolean isLunchGap = !s1.getFin().toLocalTime().isBefore(LocalTime.of(11, 0))
+                            && !s2.getDebut().toLocalTime().isAfter(LocalTime.of(14, 30))
                             && gap <= 120;
                     return gap > 0 && !isLunchGap;
                 })

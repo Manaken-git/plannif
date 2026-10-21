@@ -607,14 +607,14 @@ public class PlanningService {
                             generated.add(date.atTime(16, 0));
                         }
 
-                        // 1h30 TP slots start times:
-                        // 8h (except Monday) - already added above
-                        generated.add(date.atTime(9, 30));
-                        // 11h - already added above
-                        if (date.getDayOfWeek() != DayOfWeek.FRIDAY) {
-                            // 13h - already added above
-                            generated.add(date.atTime(14, 30));
-                            // 16h - already added above
+                        // 1h30 TP slots start times (only generated if TP sessions are present):
+                        boolean hasTpSessions = planning.getSeances() != null && planning.getSeances().stream()
+                                .anyMatch(s -> s.getType() == Seance.TypeSeance.TP || s.getDureeMinutes() > 60);
+                        if (hasTpSessions) {
+                            generated.add(date.atTime(9, 30));
+                            if (date.getDayOfWeek() != DayOfWeek.FRIDAY) {
+                                generated.add(date.atTime(14, 30));
+                            }
                         }
                     }
                 }
@@ -660,6 +660,9 @@ public class PlanningService {
             MatiereClasseConfig cfg = (classe != null && classe.getId() != null && seance.getMatiere() != null && seance.getMatiere().getId() != null)
                     ? configMap.get(classe.getId() + "_" + seance.getMatiere().getId()) : null;
 
+            int duration = seance.getDureeMinutes();
+            boolean isStandardCourse = duration <= 60 && seance.getType() != Seance.TypeSeance.TP;
+
             List<LocalDateTime> filtered = new ArrayList<>();
             for (LocalDateTime dt : globalDates) {
                 LocalDate date = dt.toLocalDate();
@@ -667,14 +670,22 @@ public class PlanningService {
                 // 1. Check ClassePresence
                 if (presences != null && !presences.isEmpty()) {
                     boolean insidePresence = false;
+                    boolean isLastDayOfPresence = false;
                     for (ClassePresence cp : presences) {
                         if (cp.getDateDebut() != null && cp.getDateFin() != null
                                 && !date.isBefore(cp.getDateDebut()) && !date.isAfter(cp.getDateFin())) {
                             insidePresence = true;
+                            if (date.equals(cp.getLastDay())) {
+                                isLastDayOfPresence = true;
+                            }
                             break;
                         }
                     }
                     if (!insidePresence) {
+                        continue;
+                    }
+                    // On the last day of presence (Vie de classe at 10h-11h), end at 11h: no courses at or after 11h
+                    if (isLastDayOfPresence && dt.getHour() >= 11 && seance.getType() != Seance.TypeSeance.VIE_DE_CLASSE) {
                         continue;
                     }
                 }
@@ -689,12 +700,19 @@ public class PlanningService {
                     }
                 }
 
+                // 3. For 1-hour courses, enforce top-of-hour starts (:00) to eliminate 30-min gaps
+                if (isStandardCourse && dt.getMinute() != 0) {
+                    continue;
+                }
+
                 filtered.add(dt);
             }
 
-            // Fallback: if no dates matched, use global dates to avoid empty value range
+            // Fallback: if no dates matched, use global dates filtered by duration to avoid empty value range
             if (filtered.isEmpty()) {
-                filtered = new ArrayList<>(globalDates);
+                filtered = globalDates.stream()
+                        .filter(dt -> !isStandardCourse || dt.getMinute() == 0)
+                        .collect(Collectors.toList());
             }
 
             seance.setDatesDebutPossibles(filtered);

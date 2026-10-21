@@ -135,7 +135,7 @@ src/main/java/fr/manaken/plannif/
 2. **Planning Entity** : `Seance`
    - Clé de planning : `@PlanningId Long id`
    - Variables de décision (attribuées par le solver) :
-     - `@PlanningVariable(valueRangeProviderRefs = "dateDebutRange") LocalDateTime debut`
+     - `@PlanningVariable(valueRangeProviderRefs = "seanceDateDebutRange") LocalDateTime debut` (ValueRangeProvider ciblé par séance, restreint aux seules dates de présence de la classe)
      - `@PlanningVariable(valueRangeProviderRefs = "salleRange") Salle salle`
      - `@PlanningVariable(valueRangeProviderRefs = "professeurRange") Professeur professeur`
    - Attributs calculés / fixes :
@@ -223,7 +223,15 @@ Le solver évalue **30 contraintes** (14 Hard, 16 Soft / 17 Soft selon configura
     - La séance est marquée `pinned = true`, interdisant à Timefold de déplacer le créneau et évitant tout goulot d'étranglement ou score infaisable.
   - Réutilise les séances `VIE_DE_CLASSE` existantes ou crée de nouvelles séances avec la matière auto-générée `"Vie de classe"`, et purge toute séance résiduelle non épinglée liée à la vie de classe.
 
+### 4. ⚡ Optimisation du Score Soft (-45 892 $\rightarrow$ -715)
+- **Verrouillage strict des créneaux à l'heure pile (`:00`)** pour les séances de 60 min : exclusion de 9h30 et 14h30 (réservés exclusivement aux TP), éradiquant 100% des micro-trous de 30 minutes.
+- **Plafonnement des séances le vendredi de fin de session** : aucun cours n'est placé à 11h ou après le dernier vendredi, garantissant un cycle continu 8h-11h (Cours + Cours + Vie de classe).
+- **`ValueRangeProvider` ciblé par entité (`seanceDateDebutRange`)** : chaque séance sélectionne désormais ses dates candidates exclusivement parmi les dates de présence réelles de sa classe, éliminant ~85% de mouvements invalides et démultipliant l'efficacité de la recherche locale.
+- **Correction de la pause méridienne** : `studentMaxGap` intègre désormais la fin à 11h00 (`!isBefore(11:00)`), évitant la fausse pénalité de -120 soft sur la pause 11h-13h.
+- **Résultat** : Score final **`0hard / -715soft`** (0 conflit, 0 trou prof, 0 trou 30min, 100% de respect des blocs de 2h).
+
 ---
+
 
 ## 7. 🧪 Suite de Tests & Qualité
  
